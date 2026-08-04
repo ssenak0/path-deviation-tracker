@@ -1,15 +1,43 @@
-
 from sdks.novavision.src.helper.package import PackageHelper
-from components.Package.src.models.PackageModel import PackageModel, PackageConfigs, ConfigExecutor, PackageOutputs, PackageResponse, PackageExecutor, OutputImage
+try:
+    from components.PathDeviationTracker.src.models.PackageModel import (
+        PackageModel, PackageConfigs, ConfigExecutor, PathDeviationExecutor,
+        PathDeviationResponse, PathDeviationOutputs, OutputPathDeviation,
+        OutputAnnotatedImage, Detects
+    )
+except ImportError:
+    try:
+        from components.Package.src.models.PackageModel import (
+            PackageModel, PackageConfigs, ConfigExecutor, PathDeviationExecutor,
+            PathDeviationResponse, PathDeviationOutputs, OutputPathDeviation,
+            OutputAnnotatedImage, Detects
+        )
+    except ImportError:
+        from src.models.PackageModel import (
+            PackageModel, PackageConfigs, ConfigExecutor, PathDeviationExecutor,
+            PathDeviationResponse, PathDeviationOutputs, OutputPathDeviation,
+            OutputAnnotatedImage, Detects
+        )
 
 
 def build_response(context):
-    outputImage = OutputImage(value=context.image)
-    Outputs = PackageOutputs(outputImage=outputImage)
-    packageResponse = PackageResponse(outputs=Outputs)
-    packageExecutor = PackageExecutor(value=packageResponse)
-    executor = ConfigExecutor(value=packageExecutor)
-    packageConfigs = PackageConfigs(executor=executor)
+    img_uid = getattr(context, "uID", getattr(context.request, "uID", ""))
+    raw_img = getattr(context, "output_annotated_image", getattr(context, "image", None))
+
+    detects_item = Detects(value=getattr(context, "output_path_deviation", []), imgUID=str(img_uid))
+    outputPathDeviation = OutputPathDeviation(value=[detects_item])
+    outputAnnotatedImage = OutputAnnotatedImage(value=raw_img)
+
+    outputs = PathDeviationOutputs(
+        outputPathDeviation=outputPathDeviation,
+        outputAnnotatedImage=outputAnnotatedImage
+    )
+    response = PathDeviationResponse(outputs=outputs)
+    pathExecutor = PathDeviationExecutor(value=response)
+    configExecutor = ConfigExecutor(value=pathExecutor)
+    packageConfigs = PackageConfigs(executor=configExecutor)
+    
     package = PackageHelper(packageModel=PackageModel, packageConfigs=packageConfigs)
     packageModel = package.build_model(context)
+    
     return packageModel
