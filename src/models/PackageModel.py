@@ -1,6 +1,6 @@
 from typing import Optional, Union, List, Any
 from typing_extensions import Literal
-from pydantic import Field
+from pydantic import Field, validator
 
 try:
     from sdks.novavision.src.base.model import (
@@ -19,7 +19,15 @@ except ImportError:
 class InputImage(Input):
     name: Literal["inputImage"] = "inputImage"
     value: Union[List[Image], Image, Any]
-    type: Literal["object"] = "object"
+    type: str = "object"
+
+    @validator("type", pre=True, always=True)
+    def set_type_based_on_value(cls, value, values):
+        val = values.get("value", value)
+        if isinstance(val, list):
+            return "list"
+        return "object"
+
     class Config:
         title = "Image"
 
@@ -27,7 +35,7 @@ class InputImage(Input):
 class InputDetections(Input):
     name: Literal["inputDetections"] = "inputDetections"
     value: Any
-    type: Literal["list"] = "list"
+    type: str = "list"
     class Config:
         title = "Detections"
 
@@ -140,7 +148,15 @@ class ConfigDrawBBox(Config):
 class OutputAnnotatedImage(Output):
     name: Literal["outputAnnotatedImage"] = "outputAnnotatedImage"
     value: Union[List[Image], Image, Any]
-    type: Literal["object"] = "object"
+    type: str = "object"
+
+    @validator("type", pre=True, always=True)
+    def set_type_based_on_value(cls, value, values):
+        val = values.get("value", value)
+        if isinstance(val, list):
+            return "list"
+        return "object"
+
     class Config:
         title = "Annotated Image"
 

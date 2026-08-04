@@ -171,7 +171,7 @@ class PathDeviationExecutor(Component):
             else:
                 deviation_score = 0.0
 
-            is_deviated = deviation_score > self.deviation_threshold
+            is_deviated = bool(deviation_score > self.deviation_threshold)
 
             enriched_detect = dict(detect)
             if "tracker_id" in enriched_detect and "trackerID" not in enriched_detect:
@@ -179,7 +179,7 @@ class PathDeviationExecutor(Component):
             elif "tracker_id" in enriched_detect:
                 enriched_detect.pop("tracker_id", None)
             enriched_detect["path_deviation"] = round(float(deviation_score), 2)
-            enriched_detect["is_deviated"] = is_deviated
+            enriched_detect["is_deviated"] = bool(is_deviated)
             output_detections.append(enriched_detect)
 
             if self.draw_bbox:
