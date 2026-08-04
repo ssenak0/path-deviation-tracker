@@ -211,4 +211,5 @@ class PathDeviationExecutor(Capsule):
 
 
 if "__main__" == __name__:
-    Executor(sys.argv[1]).run()
+    arg = sys.argv[1] if len(sys.argv) > 1 else "default_test_arg"
+    Executor(arg).run()
