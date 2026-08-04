@@ -6,27 +6,15 @@ try:
     )
 except ImportError:
     try:
-        from components.PathDeviationTracker.src.models.PackageModel import (
+        from capsules.Package.src.models.PackageModel import (
             PackageModel, PackageConfigs, ConfigExecutor, PathDeviationExecutor,
             PathDeviationResponse, PathDeviationOutputs, OutputAnnotatedImage
         )
     except ImportError:
-        try:
-            from capsules.Package.src.models.PackageModel import (
-                PackageModel, PackageConfigs, ConfigExecutor, PathDeviationExecutor,
-                PathDeviationResponse, PathDeviationOutputs, OutputAnnotatedImage
-            )
-        except ImportError:
-            try:
-                from components.Package.src.models.PackageModel import (
-                    PackageModel, PackageConfigs, ConfigExecutor, PathDeviationExecutor,
-                    PathDeviationResponse, PathDeviationOutputs, OutputAnnotatedImage
-                )
-            except ImportError:
-                from src.models.PackageModel import (
-                    PackageModel, PackageConfigs, ConfigExecutor, PathDeviationExecutor,
-                    PathDeviationResponse, PathDeviationOutputs, OutputAnnotatedImage
-                )
+        from src.models.PackageModel import (
+            PackageModel, PackageConfigs, ConfigExecutor, PathDeviationExecutor,
+            PathDeviationResponse, PathDeviationOutputs, OutputAnnotatedImage
+        )
 
 
 def build_response(context):

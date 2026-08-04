@@ -38,23 +38,13 @@ try:
     from capsules.PathDeviationTracker.src.utils.engine import PathDeviationEngine
 except ImportError:
     try:
-        from components.PathDeviationTracker.src.models.PackageModel import PackageModel
-        from components.PathDeviationTracker.src.utils.response import build_response
-        from components.PathDeviationTracker.src.utils.engine import PathDeviationEngine
+        from capsules.Package.src.models.PackageModel import PackageModel
+        from capsules.Package.src.utils.response import build_response
+        from capsules.Package.src.utils.engine import PathDeviationEngine
     except ImportError:
-        try:
-            from capsules.Package.src.models.PackageModel import PackageModel
-            from capsules.Package.src.utils.response import build_response
-            from capsules.Package.src.utils.engine import PathDeviationEngine
-        except ImportError:
-            try:
-                from components.Package.src.models.PackageModel import PackageModel
-                from components.Package.src.utils.response import build_response
-                from components.Package.src.utils.engine import PathDeviationEngine
-            except ImportError:
-                from src.models.PackageModel import PackageModel
-                from src.utils.response import build_response
-                from src.utils.engine import PathDeviationEngine
+        from src.models.PackageModel import PackageModel
+        from src.utils.response import build_response
+        from src.utils.engine import PathDeviationEngine
 
 
 class PathDeviationExecutor(Component):
@@ -105,7 +95,8 @@ class PathDeviationExecutor(Component):
     def run(self):
         img_frame = Image.get_frame(img=self.image_input, redis_db=self.redis_db)
         
-        raw_image_data = getattr(img_frame, "value", img_frame)
+        target_obj = img_frame[0] if (isinstance(img_frame, list) and len(img_frame) > 0) else img_frame
+        raw_image_data = getattr(target_obj, "value", target_obj)
         if raw_image_data is None or not isinstance(raw_image_data, np.ndarray):
             raw_image_data = np.zeros((600, 800, 3), dtype=np.uint8)
             
@@ -205,11 +196,12 @@ class PathDeviationExecutor(Component):
                     traj_pts = np.array(current_trajectory, dtype=np.int32).reshape((-1, 1, 2))
                     cv2.polylines(annotated_img, [traj_pts], isClosed=False, color=box_color, thickness=2)
 
-        if hasattr(img_frame, "value"):
-            img_frame.value = annotated_img
-            self.output_annotated_image = Image.set_frame(img=img_frame, package_uID=self.uID, redis_db=self.redis_db)
+        if hasattr(target_obj, "value"):
+            target_obj.value = annotated_img
+            redis_res = Image.set_frame(img=target_obj, package_uID=self.uID, redis_db=self.redis_db)
+            self.output_annotated_image = [redis_res] if isinstance(img_frame, list) else redis_res
         else:
-            self.output_annotated_image = annotated_img
+            self.output_annotated_image = [annotated_img] if isinstance(img_frame, list) else annotated_img
 
         self.output_path_deviation = output_detections
         self.image = self.output_annotated_image
