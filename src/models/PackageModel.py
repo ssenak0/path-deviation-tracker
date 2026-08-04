@@ -152,7 +152,7 @@ class Detects(Output):
 
 class OutputPathDeviation(Output):
     name: Literal["outputPathDeviation"] = "outputPathDeviation"
-    value: List[Detects]
+    value: Any
     type: str = "list"
     class Config:
         title = "Path Deviation"

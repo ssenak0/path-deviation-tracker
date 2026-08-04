@@ -174,11 +174,12 @@ class PathDeviationExecutor(Component):
             is_deviated = deviation_score > self.deviation_threshold
 
             enriched_detect = dict(detect)
-            enriched_detect["trackerID"] = int(tracker_id) if tracker_id.isdigit() else tracker_id
-            enriched_detect["tracker_id"] = tracker_id
+            if "tracker_id" in enriched_detect and "trackerID" not in enriched_detect:
+                enriched_detect["trackerID"] = enriched_detect.pop("tracker_id")
+            elif "tracker_id" in enriched_detect:
+                enriched_detect.pop("tracker_id", None)
             enriched_detect["path_deviation"] = round(float(deviation_score), 2)
             enriched_detect["is_deviated"] = is_deviated
-            enriched_detect["deviation_status"] = "ALERT_DEVIATED" if is_deviated else "ON_TRACK"
             output_detections.append(enriched_detect)
 
             if self.draw_bbox:

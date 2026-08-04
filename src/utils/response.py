@@ -24,8 +24,8 @@ def build_response(context):
     img_uid = getattr(context, "uID", getattr(context.request, "uID", ""))
     raw_img = getattr(context, "output_annotated_image", getattr(context, "image", None))
 
-    detects_item = Detects(value=getattr(context, "output_path_deviation", []), imgUID=str(img_uid))
-    outputPathDeviation = OutputPathDeviation(value=[detects_item])
+    raw_detections = getattr(context, "output_path_deviation", [])
+    outputPathDeviation = OutputPathDeviation(value=raw_detections)
     outputAnnotatedImage = OutputAnnotatedImage(value=raw_img)
 
     outputs = PathDeviationOutputs(
