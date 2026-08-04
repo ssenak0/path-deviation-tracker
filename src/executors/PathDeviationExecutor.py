@@ -72,7 +72,9 @@ class PathDeviationExecutor(Component):
         return {}
 
     def _get_tracker_id(self, detect: dict, idx: int) -> str:
-        if "tracker_id" in detect and detect["tracker_id"] is not None:
+        if "trackerID" in detect and detect["trackerID"] is not None:
+            return str(detect["trackerID"])
+        elif "tracker_id" in detect and detect["tracker_id"] is not None:
             return str(detect["tracker_id"])
         elif "id" in detect and detect["id"] is not None:
             return str(detect["id"])
@@ -80,7 +82,9 @@ class PathDeviationExecutor(Component):
             return f"untracked_{idx}"
 
     def _get_video_id(self, detect: dict, img_obj) -> str:
-        if "video_identifier" in detect and detect["video_identifier"]:
+        if "imgUID" in detect and detect["imgUID"]:
+            return str(detect["imgUID"])
+        elif "video_identifier" in detect and detect["video_identifier"]:
             return str(detect["video_identifier"])
         elif hasattr(img_obj, "video_identifier") and getattr(img_obj, "video_identifier"):
             return str(getattr(img_obj, "video_identifier"))
@@ -98,15 +102,26 @@ class PathDeviationExecutor(Component):
         annotated_img = raw_image_data.copy()
         
         raw_detections = getattr(self.detections_input, "value", self.detections_input)
-        if isinstance(raw_detections, str):
-            try:
-                detections_list = json.loads(raw_detections)
-            except Exception:
+        if isinstance(raw_detections, dict):
+            if "value" in raw_detections and isinstance(raw_detections["value"], list):
+                detections_list = raw_detections["value"]
+            elif "detections" in raw_detections and isinstance(raw_detections["detections"], list):
+                detections_list = raw_detections["detections"]
+            else:
                 detections_list = []
         elif isinstance(raw_detections, list):
             detections_list = raw_detections
-        elif isinstance(raw_detections, dict) and "detections" in raw_detections:
-            detections_list = raw_detections["detections"]
+        elif isinstance(raw_detections, str):
+            try:
+                parsed_json = json.loads(raw_detections)
+                if isinstance(parsed_json, dict) and "value" in parsed_json:
+                    detections_list = parsed_json["value"]
+                elif isinstance(parsed_json, list):
+                    detections_list = parsed_json
+                else:
+                    detections_list = []
+            except Exception:
+                detections_list = []
         else:
             detections_list = []
 
@@ -120,8 +135,19 @@ class PathDeviationExecutor(Component):
             if not isinstance(detect, dict):
                 continue
                 
-            bbox = detect.get("bbox", detect.get("box", [0, 0, 0, 0]))
-            if len(bbox) != 4:
+            bbox = [0.0, 0.0, 0.0, 0.0]
+            if "boundingBox" in detect and isinstance(detect["boundingBox"], dict):
+                box_dict = detect["boundingBox"]
+                left = float(box_dict.get("left", 0.0))
+                top = float(box_dict.get("top", 0.0))
+                width = float(box_dict.get("width", 0.0))
+                height = float(box_dict.get("height", 0.0))
+                bbox = [left, top, left + width, top + height]
+            elif "bbox" in detect and isinstance(detect["bbox"], (list, tuple)) and len(detect["bbox"]) == 4:
+                bbox = [float(x) for x in detect["bbox"]]
+            elif "box" in detect and isinstance(detect["box"], (list, tuple)) and len(detect["box"]) == 4:
+                bbox = [float(x) for x in detect["box"]]
+            else:
                 continue
 
             tracker_id = self._get_tracker_id(detect, idx)
@@ -148,6 +174,7 @@ class PathDeviationExecutor(Component):
             is_deviated = deviation_score > self.deviation_threshold
 
             enriched_detect = dict(detect)
+            enriched_detect["trackerID"] = int(tracker_id) if tracker_id.isdigit() else tracker_id
             enriched_detect["tracker_id"] = tracker_id
             enriched_detect["path_deviation"] = round(float(deviation_score), 2)
             enriched_detect["is_deviated"] = is_deviated
