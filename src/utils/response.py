@@ -1,20 +1,32 @@
 from sdks.novavision.src.helper.package import PackageHelper
 try:
-    from components.PathDeviationTracker.src.models.PackageModel import (
+    from capsules.PathDeviationTracker.src.models.PackageModel import (
         PackageModel, PackageConfigs, ConfigExecutor, PathDeviationExecutor,
         PathDeviationResponse, PathDeviationOutputs, OutputAnnotatedImage
     )
 except ImportError:
     try:
-        from components.Package.src.models.PackageModel import (
+        from components.PathDeviationTracker.src.models.PackageModel import (
             PackageModel, PackageConfigs, ConfigExecutor, PathDeviationExecutor,
             PathDeviationResponse, PathDeviationOutputs, OutputAnnotatedImage
         )
     except ImportError:
-        from src.models.PackageModel import (
-            PackageModel, PackageConfigs, ConfigExecutor, PathDeviationExecutor,
-            PathDeviationResponse, PathDeviationOutputs, OutputAnnotatedImage
-        )
+        try:
+            from capsules.Package.src.models.PackageModel import (
+                PackageModel, PackageConfigs, ConfigExecutor, PathDeviationExecutor,
+                PathDeviationResponse, PathDeviationOutputs, OutputAnnotatedImage
+            )
+        except ImportError:
+            try:
+                from components.Package.src.models.PackageModel import (
+                    PackageModel, PackageConfigs, ConfigExecutor, PathDeviationExecutor,
+                    PathDeviationResponse, PathDeviationOutputs, OutputAnnotatedImage
+                )
+            except ImportError:
+                from src.models.PackageModel import (
+                    PackageModel, PackageConfigs, ConfigExecutor, PathDeviationExecutor,
+                    PathDeviationResponse, PathDeviationOutputs, OutputAnnotatedImage
+                )
 
 
 def build_response(context):

@@ -33,18 +33,28 @@ except ImportError:
             pass
 
 try:
-    from components.PathDeviationTracker.src.models.PackageModel import PackageModel
-    from components.PathDeviationTracker.src.utils.response import build_response
-    from components.PathDeviationTracker.src.utils.engine import PathDeviationEngine
+    from capsules.PathDeviationTracker.src.models.PackageModel import PackageModel
+    from capsules.PathDeviationTracker.src.utils.response import build_response
+    from capsules.PathDeviationTracker.src.utils.engine import PathDeviationEngine
 except ImportError:
     try:
-        from components.Package.src.models.PackageModel import PackageModel
-        from components.Package.src.utils.response import build_response
-        from components.Package.src.utils.engine import PathDeviationEngine
+        from components.PathDeviationTracker.src.models.PackageModel import PackageModel
+        from components.PathDeviationTracker.src.utils.response import build_response
+        from components.PathDeviationTracker.src.utils.engine import PathDeviationEngine
     except ImportError:
-        from src.models.PackageModel import PackageModel
-        from src.utils.response import build_response
-        from src.utils.engine import PathDeviationEngine
+        try:
+            from capsules.Package.src.models.PackageModel import PackageModel
+            from capsules.Package.src.utils.response import build_response
+            from capsules.Package.src.utils.engine import PathDeviationEngine
+        except ImportError:
+            try:
+                from components.Package.src.models.PackageModel import PackageModel
+                from components.Package.src.utils.response import build_response
+                from components.Package.src.utils.engine import PathDeviationEngine
+            except ImportError:
+                from src.models.PackageModel import PackageModel
+                from src.utils.response import build_response
+                from src.utils.engine import PathDeviationEngine
 
 
 class PathDeviationExecutor(Component):
