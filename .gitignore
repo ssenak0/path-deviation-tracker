@@ -241,3 +241,8 @@ fabric.properties
 .idea/**/azureSettings.xml
 
 # End of https://www.toptal.com/developers/gitignore/api/pycharm
+
+# macOS and JetBrains IDE rules
+.idea/
+.DS_Store
+*.DS_Store
