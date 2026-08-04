@@ -35,7 +35,7 @@ class InputImage(Input):
 class InputDetections(Input):
     name: Literal["inputDetections"] = "inputDetections"
     value: Any
-    type: Literal["Detections"] = "Detections"
+    type: str = "list"
     class Config:
         title = "Detections"
 
@@ -153,7 +153,7 @@ class Detects(Output):
 class OutputPathDeviation(Output):
     name: Literal["outputPathDeviation"] = "outputPathDeviation"
     value: List[Detects]
-    type: Literal["Detections"] = "Detections"
+    type: str = "list"
     class Config:
         title = "Path Deviation"
 
