@@ -5,6 +5,7 @@ import json
 import numpy as np
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../'))
 
 try:
     from sdks.novavision.src.media.image import Image
@@ -198,10 +199,9 @@ class PathDeviationExecutor(Capsule):
 
         if hasattr(target_obj, "value"):
             target_obj.value = annotated_img
-            redis_res = Image.set_frame(img=target_obj, package_uID=self.uID, redis_db=self.redis_db)
-            self.output_annotated_image = [redis_res] if isinstance(img_frame, list) else redis_res
+            self.output_annotated_image = Image.set_frame(img=img_frame, package_uID=self.uID, redis_db=self.redis_db)
         else:
-            self.output_annotated_image = [annotated_img] if isinstance(img_frame, list) else annotated_img
+            self.output_annotated_image = annotated_img
 
         self.output_path_deviation = output_detections
         self.image = self.output_annotated_image

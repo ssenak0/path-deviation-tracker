@@ -17,26 +17,35 @@ class PathDeviationEngine:
         p1 = np.array(path1, dtype=np.float64)
         p2 = np.array(path2, dtype=np.float64)
 
+        if len(p1) == 0 or len(p2) == 0:
+            return 0.0
+
+        if len(p1) > 60:
+            indices = np.linspace(0, len(p1) - 1, 60, dtype=int)
+            p1 = p1[indices]
+        if len(p2) > 60:
+            indices = np.linspace(0, len(p2) - 1, 60, dtype=int)
+            p2 = p2[indices]
+
         n = len(p1)
         m = len(p2)
 
-        if n == 0 or m == 0:
-            return 0.0
+        diffs = p1[:, None, :] - p2[None, :, :]
+        dist_matrix = np.sqrt(np.sum(diffs ** 2, axis=-1))
 
         ca = np.zeros((n, m), dtype=np.float64)
-        ca[0, 0] = cls.euclidean_distance(p1[0], p2[0])
+        ca[0, 0] = dist_matrix[0, 0]
 
         for i in range(1, n):
-            ca[i, 0] = max(ca[i - 1, 0], cls.euclidean_distance(p1[i], p2[0]))
+            ca[i, 0] = max(ca[i - 1, 0], dist_matrix[i, 0])
 
         for j in range(1, m):
-            ca[0, j] = max(ca[0, j - 1], cls.euclidean_distance(p1[0], p2[j]))
+            ca[0, j] = max(ca[0, j - 1], dist_matrix[0, j])
 
         for i in range(1, n):
             for j in range(1, m):
-                min_previous_cost = min(ca[i - 1, j], ca[i, j - 1], ca[i - 1, j - 1])
-                current_point_cost = cls.euclidean_distance(p1[i], p2[j])
-                ca[i, j] = max(min_previous_cost, current_point_cost)
+                min_prev = min(ca[i - 1, j], ca[i, j - 1], ca[i - 1, j - 1])
+                ca[i, j] = max(min_prev, dist_matrix[i, j])
 
         return float(ca[n - 1, m - 1])
 
