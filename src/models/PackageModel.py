@@ -1,6 +1,6 @@
 from typing import Optional, Union, List, Any
 from typing_extensions import Literal
-from pydantic import Field, validator
+from pydantic import Field
 
 try:
     from sdks.novavision.src.base.model import (
@@ -18,16 +18,8 @@ except ImportError:
 
 class InputImage(Input):
     name: Literal["inputImage"] = "inputImage"
-    value: Union[List[Image], Image]
-    type: str = "object"
-
-    @validator("type", pre=True, always=True)
-    def set_type_based_on_value(cls, value, values):
-        val = values.get("value", value)
-        if isinstance(val, list):
-            return "list"
-        return "object"
-
+    value: Union[List[Image], Image, Any]
+    type: Literal["object"] = "object"
     class Config:
         title = "Image"
 
@@ -35,7 +27,7 @@ class InputImage(Input):
 class InputDetections(Input):
     name: Literal["inputDetections"] = "inputDetections"
     value: Any
-    type: str = "list"
+    type: Literal["list"] = "list"
     class Config:
         title = "Detections"
 
@@ -124,7 +116,7 @@ class ConfigReferencePath(Config):
     type: Literal["string"] = "string"
     field: Literal["textInput"] = "textInput"
     class Config:
-        title = "Referans Rota Koordinatları"
+        title = "Reference Path Coordinates"
 
 
 class ConfigDeviationThreshold(Config):
@@ -133,7 +125,7 @@ class ConfigDeviationThreshold(Config):
     type: Literal["number"] = "number"
     field: Literal["textInput"] = "textInput"
     class Config:
-        title = "Maksimum Fréchet Sapma Eşiği"
+        title = "Max Fréchet Deviation Threshold"
 
 
 class ConfigDrawBBox(Config):
@@ -142,18 +134,13 @@ class ConfigDrawBBox(Config):
     type: Literal["object"] = "object"
     field: Literal["dropdownlist"] = "dropdownlist"
     class Config:
-        title = "Rota ve BBox Görsellemesi"
-
-
-class Detects(Output):
-    value: Any
-    imgUID: str = ""
+        title = "Drawing BBox and Trajectory"
 
 
 class OutputPathDeviation(Output):
     name: Literal["outputPathDeviation"] = "outputPathDeviation"
     value: Any
-    type: str = "list"
+    type: Literal["list"] = "list"
     class Config:
         title = "Path Deviation"
 
@@ -161,15 +148,7 @@ class OutputPathDeviation(Output):
 class OutputAnnotatedImage(Output):
     name: Literal["outputAnnotatedImage"] = "outputAnnotatedImage"
     value: Union[List[Image], Image, Any]
-    type: str = "object"
-
-    @validator("type", pre=True, always=True)
-    def set_type_based_on_value(cls, value, values):
-        val = values.get("value", value)
-        if isinstance(val, list):
-            return "list"
-        return "object"
-
+    type: Literal["object"] = "object"
     class Config:
         title = "Annotated Image"
 
@@ -195,6 +174,9 @@ class PathDeviationRequest(Request):
     inputs: Optional[PathDeviationInputs]
     configs: PathDeviationConfigs
     class Config:
+        schema_extra = {
+            "target": "configs"
+        }
         json_schema_extra = {
             "target": "configs"
         }
@@ -211,6 +193,11 @@ class PathDeviationExecutor(Config):
     field: Literal["option"] = "option"
     class Config:
         title = "Path Deviation V2 Analytics"
+        schema_extra = {
+            "target": {
+                "value": 0
+            }
+        }
         json_schema_extra = {
             "target": {
                 "value": 0
@@ -225,6 +212,9 @@ class ConfigExecutor(Config):
     field: Literal["dependentDropdownlist"] = "dependentDropdownlist"
     class Config:
         title = "Task"
+        schema_extra = {
+            "target": "value"
+        }
         json_schema_extra = {
             "target": "value"
         }

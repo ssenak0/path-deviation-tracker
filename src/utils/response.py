@@ -3,20 +3,20 @@ try:
     from components.PathDeviationTracker.src.models.PackageModel import (
         PackageModel, PackageConfigs, ConfigExecutor, PathDeviationExecutor,
         PathDeviationResponse, PathDeviationOutputs, OutputPathDeviation,
-        OutputAnnotatedImage, Detects
+        OutputAnnotatedImage
     )
 except ImportError:
     try:
         from components.Package.src.models.PackageModel import (
             PackageModel, PackageConfigs, ConfigExecutor, PathDeviationExecutor,
             PathDeviationResponse, PathDeviationOutputs, OutputPathDeviation,
-            OutputAnnotatedImage, Detects
+            OutputAnnotatedImage
         )
     except ImportError:
         from src.models.PackageModel import (
             PackageModel, PackageConfigs, ConfigExecutor, PathDeviationExecutor,
             PathDeviationResponse, PathDeviationOutputs, OutputPathDeviation,
-            OutputAnnotatedImage, Detects
+            OutputAnnotatedImage
         )
 
 
