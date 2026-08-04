@@ -2,34 +2,26 @@ from sdks.novavision.src.helper.package import PackageHelper
 try:
     from components.PathDeviationTracker.src.models.PackageModel import (
         PackageModel, PackageConfigs, ConfigExecutor, PathDeviationExecutor,
-        PathDeviationResponse, PathDeviationOutputs, OutputPathDeviation,
-        OutputAnnotatedImage
+        PathDeviationResponse, PathDeviationOutputs, OutputAnnotatedImage
     )
 except ImportError:
     try:
         from components.Package.src.models.PackageModel import (
             PackageModel, PackageConfigs, ConfigExecutor, PathDeviationExecutor,
-            PathDeviationResponse, PathDeviationOutputs, OutputPathDeviation,
-            OutputAnnotatedImage
+            PathDeviationResponse, PathDeviationOutputs, OutputAnnotatedImage
         )
     except ImportError:
         from src.models.PackageModel import (
             PackageModel, PackageConfigs, ConfigExecutor, PathDeviationExecutor,
-            PathDeviationResponse, PathDeviationOutputs, OutputPathDeviation,
-            OutputAnnotatedImage
+            PathDeviationResponse, PathDeviationOutputs, OutputAnnotatedImage
         )
 
 
 def build_response(context):
-    img_uid = getattr(context, "uID", getattr(context.request, "uID", ""))
     raw_img = getattr(context, "output_annotated_image", getattr(context, "image", None))
-
-    raw_detections = getattr(context, "output_path_deviation", [])
-    outputPathDeviation = OutputPathDeviation(value=raw_detections)
     outputAnnotatedImage = OutputAnnotatedImage(value=raw_img)
 
     outputs = PathDeviationOutputs(
-        outputPathDeviation=outputPathDeviation,
         outputAnnotatedImage=outputAnnotatedImage
     )
     response = PathDeviationResponse(outputs=outputs)

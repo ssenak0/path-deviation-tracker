@@ -137,14 +137,6 @@ class ConfigDrawBBox(Config):
         title = "Drawing BBox and Trajectory"
 
 
-class OutputPathDeviation(Output):
-    name: Literal["outputPathDeviation"] = "outputPathDeviation"
-    value: Any
-    type: Literal["list"] = "list"
-    class Config:
-        title = "Path Deviation"
-
-
 class OutputAnnotatedImage(Output):
     name: Literal["outputAnnotatedImage"] = "outputAnnotatedImage"
     value: Union[List[Image], Image, Any]
@@ -166,7 +158,6 @@ class PathDeviationInputs(Inputs):
 
 
 class PathDeviationOutputs(Outputs):
-    outputPathDeviation: OutputPathDeviation
     outputAnnotatedImage: OutputAnnotatedImage
 
 
