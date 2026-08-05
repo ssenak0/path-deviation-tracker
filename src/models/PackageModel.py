@@ -7,13 +7,8 @@ try:
         Package, Image, Inputs, Configs, Outputs, Response,
         Request, Config, Input, Output, Detections
     )
-except ImportError:
-    from pydantic import BaseModel
-    class BaseStub(BaseModel):
-        pass
-    Package = Inputs = Configs = Outputs = Response = Request = Config = Input = Output = BaseStub
-    Image = Any
-    Detections = Any
+except ImportError as e:
+    raise ImportError(f"NovaVision model import failed: {e}")
 
 
 class InputImage(Input):
@@ -161,6 +156,14 @@ class OutputAnnotatedImage(Output):
         title = "Annotated Image"
 
 
+class OutputPathDeviation(Output):
+    name: Literal["outputPathDeviation"] = "outputPathDeviation"
+    value: Any
+    type: str = "list"
+    class Config:
+        title = "Path Deviation Detections"
+
+
 class PathDeviationConfigs(Configs):
     triggeringAnchor: ConfigTriggeringAnchor
     referencePath: ConfigReferencePath
@@ -175,6 +178,7 @@ class PathDeviationInputs(Inputs):
 
 class PathDeviationOutputs(Outputs):
     outputAnnotatedImage: OutputAnnotatedImage
+    outputPathDeviation: OutputPathDeviation
 
 
 class PathDeviationRequest(Request):
@@ -193,7 +197,7 @@ class PathDeviationResponse(Response):
     outputs: PathDeviationOutputs
 
 
-class PathDeviationExecutor(Config):
+class PathDeviationExecutorConfig(Config):
     name: Literal["PathDeviationExecutor"] = "PathDeviationExecutor"
     value: Union[PathDeviationRequest, PathDeviationResponse]
     type: Literal["object"] = "object"
@@ -214,7 +218,7 @@ class PathDeviationExecutor(Config):
 
 class ConfigExecutor(Config):
     name: Literal["ConfigExecutor"] = "ConfigExecutor"
-    value: Union[PathDeviationExecutor]
+    value: Union[PathDeviationExecutorConfig]
     type: Literal["executor"] = "executor"
     field: Literal["dependentDropdownlist"] = "dependentDropdownlist"
     class Config:

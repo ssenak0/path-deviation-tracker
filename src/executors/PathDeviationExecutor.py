@@ -11,27 +11,8 @@ try:
     from sdks.novavision.src.media.image import Image
     from sdks.novavision.src.base.capsule import Capsule
     from sdks.novavision.src.helper.executor import Executor
-except ImportError:
-    class Capsule:
-        def __init__(self, request, bootstrap):
-            self.request = request
-            self.bootstrap_cfg = bootstrap
-            self.uID = getattr(request, "uID", "dynamic-runtime-uuid")
-            self.redis_db = getattr(request, "redis_db", None)
-    class Image:
-        @staticmethod
-        def get_frame(img, redis_db=None):
-            _ = redis_db
-            return img
-        @staticmethod
-        def set_frame(img, package_uID=None, redis_db=None):
-            _, _ = package_uID, redis_db
-            return img
-    class Executor:
-        def __init__(self, arg):
-            _ = arg
-        def run(self):
-            pass
+except ImportError as e:
+    raise ImportError(f"NovaVision import failed: {e}")
 
 try:
     from capsules.PathDeviationTracker.src.models.PackageModel import PackageModel
@@ -48,17 +29,55 @@ except ImportError:
         from src.utils.engine import PathDeviationEngine
 
 
+def unwrap_value(v, default=None):
+    if v is None:
+        return default
+    if hasattr(v, "value"):
+        return unwrap_value(v.value, default)
+    if isinstance(v, dict) and "value" in v:
+        return unwrap_value(v["value"], default)
+    return v
+
+
+def parse_bool(v, default=True):
+    v = unwrap_value(v, default)
+    if isinstance(v, bool):
+        return v
+    if isinstance(v, str):
+        return v.strip().lower() in ("true", "1", "yes", "enable", "enabled")
+    return bool(v) if v is not None else default
+
+
 class PathDeviationExecutor(Capsule):
     def __init__(self, request, bootstrap):
         super().__init__(request, bootstrap)
         self.request.model = PackageModel(**(self.request.data if hasattr(self.request, "data") else {}))
         
-        self.anchor_type = self.request.get_param("ConfigTriggeringAnchor") or "CENTER"
-        raw_ref_path = self.request.get_param("ConfigReferencePath") or "[[100, 200], [200, 300], [300, 400]]"
-        self.deviation_threshold = float(self.request.get_param("ConfigDeviationThreshold") or 50.0)
-        self.draw_bbox = self.request.get_param("ConfigDrawBBox")
-        if self.draw_bbox is None:
-            self.draw_bbox = True
+        raw_anchor = self.request.get_param("ConfigTriggeringAnchor")
+        if raw_anchor is None:
+            raw_anchor = self.request.get_param("triggeringAnchor")
+            
+        raw_ref = self.request.get_param("ConfigReferencePath")
+        if raw_ref is None:
+            raw_ref = self.request.get_param("referencePath")
+            
+        raw_thresh = self.request.get_param("ConfigDeviationThreshold")
+        if raw_thresh is None:
+            raw_thresh = self.request.get_param("deviationThreshold")
+            
+        raw_draw = self.request.get_param("ConfigDrawBBox")
+        if raw_draw is None:
+            raw_draw = self.request.get_param("drawBBox")
+
+        print("anchor raw:", raw_anchor)
+        print("ref raw:", raw_ref)
+        print("threshold raw:", raw_thresh)
+        print("draw raw:", raw_draw)
+        
+        self.anchor_type = unwrap_value(raw_anchor, "CENTER")
+        raw_ref_path = unwrap_value(raw_ref, "[[100, 200], [200, 300], [300, 400]]")
+        self.deviation_threshold = float(unwrap_value(raw_thresh, 50.0))
+        self.draw_bbox = parse_bool(raw_draw, True)
             
         self.image_input = self.request.get_param("inputImage")
         self.detections_input = self.request.get_param("inputDetections")
@@ -98,12 +117,25 @@ class PathDeviationExecutor(Capsule):
         
         target_obj = img_frame[0] if (isinstance(img_frame, list) and len(img_frame) > 0) else img_frame
         raw_image_data = getattr(target_obj, "value", target_obj)
-        if raw_image_data is None or not isinstance(raw_image_data, np.ndarray):
-            raw_image_data = np.zeros((600, 800, 3), dtype=np.uint8)
+        
+        print("raw_image_data type:", type(raw_image_data))
+        
+        if isinstance(raw_image_data, bytes):
+            arr = np.frombuffer(raw_image_data, dtype=np.uint8)
+            raw_image_data = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+        elif not isinstance(raw_image_data, np.ndarray) and raw_image_data is not None:
+            try:
+                raw_image_data = np.array(raw_image_data, dtype=np.uint8)
+            except Exception:
+                pass
+                
+        if raw_image_data is None or not isinstance(raw_image_data, np.ndarray) or raw_image_data.ndim < 2:
+            raise ValueError(f"Invalid image input type: {type(raw_image_data)}")
             
         annotated_img = raw_image_data.copy()
         
         raw_detections = getattr(self.detections_input, "value", self.detections_input)
+        print("DEBUG raw_detections type:", type(raw_detections))
         if isinstance(raw_detections, dict):
             if "value" in raw_detections and isinstance(raw_detections["value"], list):
                 detections_list = raw_detections["value"]
@@ -127,6 +159,7 @@ class PathDeviationExecutor(Capsule):
         else:
             detections_list = []
 
+        print("detections_list len:", len(detections_list))
         output_detections = []
         
         if len(self.reference_path) > 1 and self.draw_bbox:
@@ -138,19 +171,39 @@ class PathDeviationExecutor(Capsule):
                 continue
                 
             bbox = [0.0, 0.0, 0.0, 0.0]
-            if "boundingBox" in detect and isinstance(detect["boundingBox"], dict):
-                box_dict = detect["boundingBox"]
+            target_dict = detect.get("value", detect.get("predictions", detect))
+            if not isinstance(target_dict, dict):
+                target_dict = detect
+
+            if "boundingBox" in target_dict and isinstance(target_dict["boundingBox"], dict):
+                box_dict = target_dict["boundingBox"]
                 left = float(box_dict.get("left", 0.0))
                 top = float(box_dict.get("top", 0.0))
                 width = float(box_dict.get("width", 0.0))
                 height = float(box_dict.get("height", 0.0))
                 bbox = [left, top, left + width, top + height]
-            elif "bbox" in detect and isinstance(detect["bbox"], (list, tuple)) and len(detect["bbox"]) == 4:
-                bbox = [float(x) for x in detect["bbox"]]
-            elif "box" in detect and isinstance(detect["box"], (list, tuple)) and len(detect["box"]) == 4:
-                bbox = [float(x) for x in detect["box"]]
+            elif "bbox" in target_dict and isinstance(target_dict["bbox"], (list, tuple)) and len(target_dict["bbox"]) == 4:
+                bbox = [float(x) for x in target_dict["bbox"]]
+            elif "box" in target_dict and isinstance(target_dict["box"], (list, tuple)) and len(target_dict["box"]) == 4:
+                bbox = [float(x) for x in target_dict["box"]]
+            elif all(k in target_dict for k in ("left", "top", "width", "height")):
+                left = float(target_dict.get("left", 0.0))
+                top = float(target_dict.get("top", 0.0))
+                width = float(target_dict.get("width", 0.0))
+                height = float(target_dict.get("height", 0.0))
+                bbox = [left, top, left + width, top + height]
+            elif all(k in target_dict for k in ("left", "top", "right", "bottom")):
+                bbox = [float(target_dict["left"]), float(target_dict["top"]), float(target_dict["right"]), float(target_dict["bottom"])]
+            elif all(k in target_dict for k in ("x", "y", "w", "h")):
+                x = float(target_dict["x"])
+                y = float(target_dict["y"])
+                w = float(target_dict["w"])
+                h = float(target_dict["h"])
+                bbox = [x - w / 2.0, y - h / 2.0, x + w / 2.0, y + h / 2.0]
             else:
+                print(f"DEBUG [PathDeviationTracker] - Skipping detection with unrecognized bbox format: {list(detect.keys())}")
                 continue
+
 
             tracker_id = self._get_tracker_id(detect, idx)
             video_id = self._get_video_id(detect, img_frame)
@@ -205,6 +258,10 @@ class PathDeviationExecutor(Capsule):
 
         self.output_path_deviation = output_detections
         self.image = self.output_annotated_image
+
+        print("output_detections len:", len(output_detections))
+        print("output_annotated_image type:", type(self.output_annotated_image))
+        print("DEBUG output_path_deviation len:", len(self.output_path_deviation))
 
         package_model = build_response(context=self)
         return package_model
