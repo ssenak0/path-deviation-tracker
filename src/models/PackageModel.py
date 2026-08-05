@@ -159,7 +159,7 @@ class OutputAnnotatedImage(Output):
 class OutputPathDeviation(Output):
     name: Literal["outputPathDeviation"] = "outputPathDeviation"
     value: Any
-    type: str = "list"
+    type: Literal["list"] = "list"
     class Config:
         title = "Path Deviation Detections"
 

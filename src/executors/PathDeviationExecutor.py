@@ -48,6 +48,18 @@ def parse_bool(v, default=True):
     return bool(v) if v is not None else default
 
 
+def to_plain_dict(obj):
+    if isinstance(obj, dict):
+        return obj
+    if hasattr(obj, "model_dump"):
+        return obj.model_dump()
+    if hasattr(obj, "dict"):
+        return obj.dict()
+    if hasattr(obj, "__dict__"):
+        return vars(obj)
+    return obj
+
+
 class PathDeviationExecutor(Capsule):
     def __init__(self, request, bootstrap):
         super().__init__(request, bootstrap)
@@ -131,7 +143,16 @@ class PathDeviationExecutor(Capsule):
                 
         if raw_image_data is None or not isinstance(raw_image_data, np.ndarray) or raw_image_data.ndim < 2:
             raise ValueError(f"Invalid image input type: {type(raw_image_data)}")
-            
+
+        if raw_image_data.ndim == 2:
+            raw_image_data = cv2.cvtColor(raw_image_data, cv2.COLOR_GRAY2BGR)
+        elif raw_image_data.ndim == 3 and raw_image_data.shape[2] == 4:
+            raw_image_data = cv2.cvtColor(raw_image_data, cv2.COLOR_RGBA2BGR)
+
+        if raw_image_data.dtype != np.uint8:
+            raw_image_data = np.clip(raw_image_data, 0, 255).astype(np.uint8)
+
+        raw_image_data = np.ascontiguousarray(raw_image_data)
         annotated_img = raw_image_data.copy()
         
         raw_detections = getattr(self.detections_input, "value", self.detections_input)
@@ -166,12 +187,17 @@ class PathDeviationExecutor(Capsule):
             pts = self.reference_path.astype(np.int32).reshape((-1, 1, 2))
             cv2.polylines(annotated_img, [pts], isClosed=False, color=(255, 255, 0), thickness=2)
 
+        img_h, img_w = annotated_img.shape[:2]
+
         for idx, detect in enumerate(detections_list):
+            detect = to_plain_dict(detect)
             if not isinstance(detect, dict):
+                print("DEBUG skipping non-dict detection:", type(detect))
                 continue
                 
             bbox = [0.0, 0.0, 0.0, 0.0]
             target_dict = detect.get("value", detect.get("predictions", detect))
+            target_dict = to_plain_dict(target_dict)
             if not isinstance(target_dict, dict):
                 target_dict = detect
 
@@ -201,12 +227,25 @@ class PathDeviationExecutor(Capsule):
                 h = float(target_dict["h"])
                 bbox = [x - w / 2.0, y - h / 2.0, x + w / 2.0, y + h / 2.0]
             else:
-                print(f"DEBUG [PathDeviationTracker] - Skipping detection with unrecognized bbox format: {list(detect.keys())}")
+                print(f"DEBUG [PathDeviationTracker] - Skipping detection with unrecognized bbox format: {list(detect.keys()) if isinstance(detect, dict) else type(detect)}")
                 continue
 
+            if max(bbox) <= 1.5 and max(img_w, img_h) > 1.5:
+                bbox = [
+                    bbox[0] * img_w,
+                    bbox[1] * img_h,
+                    bbox[2] * img_w,
+                    bbox[3] * img_h,
+                ]
 
-            tracker_id = self._get_tracker_id(detect, idx)
-            video_id = self._get_video_id(detect, img_frame)
+            tracker_id = self._get_tracker_id(target_dict, idx)
+            if tracker_id.startswith("untracked_"):
+                tracker_id = self._get_tracker_id(detect, idx)
+
+            video_id = self._get_video_id(target_dict, target_obj)
+            if video_id == "default_stream":
+                video_id = self._get_video_id(detect, target_obj)
+
             buffer_key = f"{video_id}_{tracker_id}"
 
             anchor_pt = PathDeviationEngine.extract_anchor_point(bbox, anchor_type=str(self.anchor_type))
