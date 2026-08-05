@@ -2,6 +2,7 @@ import os
 import cv2
 import sys
 import json
+import base64
 import numpy as np
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../'))
@@ -29,14 +30,68 @@ except ImportError:
         from src.utils.engine import PathDeviationEngine
 
 
+def is_placeholder(v):
+    return isinstance(v, str) and "{{changeable" in v
+
+
 def unwrap_value(v, default=None):
     if v is None:
         return default
+
     if hasattr(v, "value"):
-        return unwrap_value(v.value, default)
-    if isinstance(v, dict) and "value" in v:
-        return unwrap_value(v["value"], default)
+        value = getattr(v, "value")
+        name = getattr(v, "name", None)
+
+        if is_placeholder(value) or value in ("", None):
+            return unwrap_value(name, default)
+
+        return unwrap_value(value, default)
+
+    if isinstance(v, dict):
+        value = v.get("value")
+        name = v.get("name")
+
+        if is_placeholder(value) or value in ("", None):
+            return unwrap_value(name, default)
+
+        return unwrap_value(value, default)
+
+    if is_placeholder(v) or v == "":
+        return default
+
     return v
+
+
+def normalize_anchor(v, default="CENTER"):
+    v = unwrap_value(v, default)
+
+    if v is None:
+        return default
+
+    v = str(v).strip()
+
+    mapping = {
+        "Center": "CENTER",
+        "BottomCenter": "BOTTOM_CENTER",
+        "TopCenter": "TOP_CENTER",
+        "CenterLeft": "CENTER_LEFT",
+        "CenterRight": "CENTER_RIGHT",
+        "CENTER": "CENTER",
+        "BOTTOM_CENTER": "BOTTOM_CENTER",
+        "TOP_CENTER": "TOP_CENTER",
+        "CENTER_LEFT": "CENTER_LEFT",
+        "CENTER_RIGHT": "CENTER_RIGHT",
+    }
+
+    return mapping.get(v, default)
+
+
+def parse_float(v, default=500.0):
+    v = unwrap_value(v, default)
+    try:
+        return float(v)
+    except Exception:
+        return float(default)
 
 
 def parse_bool(v, default=True):
@@ -44,7 +99,11 @@ def parse_bool(v, default=True):
     if isinstance(v, bool):
         return v
     if isinstance(v, str):
-        return v.strip().lower() in ("true", "1", "yes", "enable", "enabled")
+        s = v.strip().lower()
+        if s in ("true", "1", "yes", "enable", "enabled"):
+            return True
+        if s in ("false", "0", "no", "disable", "disabled"):
+            return False
     return bool(v) if v is not None else default
 
 
@@ -86,10 +145,18 @@ class PathDeviationExecutor(Capsule):
         print("threshold raw:", raw_thresh)
         print("draw raw:", raw_draw)
         
-        self.anchor_type = unwrap_value(raw_anchor, "CENTER")
-        raw_ref_path = unwrap_value(raw_ref, "[[100, 200], [200, 300], [300, 400]]")
-        self.deviation_threshold = float(unwrap_value(raw_thresh, 50.0))
+        self.anchor_type = normalize_anchor(raw_anchor, "CENTER")
+        raw_ref_path = unwrap_value(
+            raw_ref,
+            "[[1014, 239], [995, 675]]"
+        )
+        self.deviation_threshold = parse_float(raw_thresh, 500.0)
         self.draw_bbox = parse_bool(raw_draw, True)
+
+        print("parsed anchor:", self.anchor_type)
+        print("parsed ref path:", raw_ref_path)
+        print("parsed threshold:", self.deviation_threshold)
+        print("parsed draw bbox:", self.draw_bbox)
             
         self.image_input = self.request.get_param("inputImage")
         self.detections_input = self.request.get_param("inputDetections")
@@ -114,13 +181,21 @@ class PathDeviationExecutor(Capsule):
             return f"untracked_{idx}"
 
     def _get_video_id(self, detect: dict, img_obj) -> str:
-        if "imgUID" in detect and detect["imgUID"]:
-            return str(detect["imgUID"])
-        elif "video_identifier" in detect and detect["video_identifier"]:
+        if "video_identifier" in detect and detect["video_identifier"]:
             return str(detect["video_identifier"])
-        elif hasattr(img_obj, "video_identifier") and getattr(img_obj, "video_identifier"):
+
+        if hasattr(img_obj, "metadata"):
+            metadata = getattr(img_obj, "metadata")
+            if isinstance(metadata, dict):
+                if metadata.get("video_path"):
+                    return str(metadata["video_path"])
+                if metadata.get("video_id"):
+                    return str(metadata["video_id"])
+
+        if hasattr(img_obj, "video_identifier") and getattr(img_obj, "video_identifier"):
             return str(getattr(img_obj, "video_identifier"))
-        elif hasattr(self, "uID") and self.uID:
+
+        if hasattr(self, "uID") and self.uID:
             return str(self.uID)
         return "default_stream"
 
@@ -131,6 +206,22 @@ class PathDeviationExecutor(Capsule):
         raw_image_data = getattr(target_obj, "value", target_obj)
         
         print("raw_image_data type:", type(raw_image_data))
+
+        if isinstance(raw_image_data, dict):
+            if raw_image_data.get("encoding") == "base64" and "value" in raw_image_data:
+                b = base64.b64decode(raw_image_data["value"])
+                arr = np.frombuffer(b, dtype=np.uint8)
+                raw_image_data = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+            elif "value" in raw_image_data:
+                raw_image_data = raw_image_data["value"]
+
+        if isinstance(raw_image_data, str):
+            try:
+                b = base64.b64decode(raw_image_data)
+                arr = np.frombuffer(b, dtype=np.uint8)
+                raw_image_data = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+            except Exception:
+                pass
         
         if isinstance(raw_image_data, bytes):
             arr = np.frombuffer(raw_image_data, dtype=np.uint8)
