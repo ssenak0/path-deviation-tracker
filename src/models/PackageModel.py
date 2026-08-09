@@ -1,17 +1,23 @@
 """NovaVision Package Model Şartnamesine uygun capsule tanımı."""
 
 from typing import List, Literal, Optional, Union
-
-from pydantic import Field
+from pydantic import Field, validator
 from sdks.novavision.src.base.model import Config, Configs, Image, Input, Inputs, Output, Outputs, Package, Request, Response
 
 
 class InputImage(Input):
-    """Video Feed'den gelen, video metadata taşıyan güncel kare."""
     name: Literal["inputImage"] = "inputImage"
-    value: Image
-    type: Literal["Image"] = "Image"
-    field: Literal["hiddenInput"] = "hiddenInput"
+    value: Union[List[Image], Image]
+    type: str = "object"
+
+    @validator("type", pre=True, always=True)
+    def set_type_based_on_value(cls, value, values):
+        val = values.get('value')
+        if isinstance(val, Image):
+            return "object"
+        elif isinstance(val, list):
+            return "list"
+        return "object"
 
     class Config:
         title = "Image"
@@ -19,9 +25,17 @@ class InputImage(Input):
 
 class InputDetections(Input):
     name: Literal["detections"] = "detections"
-    value: List[dict]
-    type: Literal["Detections"] = "Detections"
-    field: Literal["hiddenInput"] = "hiddenInput"
+    value: Union[List[dict], dict]
+    type: str = "object"
+
+    @validator("type", pre=True, always=True)
+    def set_type_based_on_value(cls, value, values):
+        val = values.get('value')
+        if isinstance(val, dict):
+            return "object"
+        elif isinstance(val, list):
+            return "list"
+        return "object"
 
     class Config:
         title = "Detections"
@@ -61,7 +75,7 @@ class ConfigTriggeringAnchor(Config):
     field: Literal["dropdownlist"] = "dropdownlist"
     class Config:
         title = "Tracking Anchor"
-        schema_extra = {"target": "value"}
+        json_schema_extra = {"target": "value"}
 
 
 class ConfigReferencePath(Config):
@@ -85,8 +99,17 @@ class PathDeviationConfigs(Configs):
 
 class OutputDetections(Output):
     name: Literal["outputDetections"] = "outputDetections"
-    value: List[dict]
-    type: Literal["Detections"] = "Detections"
+    value: Union[List[dict], dict]
+    type: str = "object"
+
+    @validator("type", pre=True, always=True)
+    def set_type_based_on_value(cls, value, values):
+        val = values.get('value')
+        if isinstance(val, dict):
+            return "object"
+        elif isinstance(val, list):
+            return "list"
+        return "object"
 
     class Config:
         title = "Detections/ROI"
@@ -100,7 +123,7 @@ class PathDeviationRequest(Request):
     inputs: Optional[PathDeviationInputs]
     configs: PathDeviationConfigs
     class Config:
-        schema_extra = {"target": "configs"}
+        json_schema_extra = {"target": "configs"}
 
 
 class PathDeviationResponse(Response):
@@ -114,7 +137,7 @@ class PathDeviationTrackerExecutorConfig(Config):
     field: Literal["option"] = "option"
     class Config:
         title = "Path Deviation"
-        schema_extra = {"target": {"value": 0}}
+        json_schema_extra = {"target": {"value": 0}}
 
 
 class ConfigExecutor(Config):
@@ -124,7 +147,6 @@ class ConfigExecutor(Config):
     field: Literal["dependentDropdownlist"] = "dependentDropdownlist"
     class Config:
         title = "Task"
-        schema_extra = {"target": "value"}
 
 
 class PackageConfigs(Configs):
