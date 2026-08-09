@@ -61,7 +61,7 @@ class ConfigTriggeringAnchor(Config):
     field: Literal["dropdownlist"] = "dropdownlist"
     class Config:
         title = "Tracking Anchor"
-        schema_extra = {"target": "value"}
+        json_schema_extra = {"target": "value"}
 
 
 class ConfigReferencePath(Config):
@@ -100,7 +100,7 @@ class PathDeviationRequest(Request):
     inputs: Optional[PathDeviationInputs]
     configs: PathDeviationConfigs
     class Config:
-        schema_extra = {"target": "configs"}
+        json_schema_extra = {"target": "configs"}
 
 
 class PathDeviationResponse(Response):
@@ -114,7 +114,7 @@ class PathDeviationTrackerExecutorConfig(Config):
     field: Literal["option"] = "option"
     class Config:
         title = "Path Deviation"
-        schema_extra = {"target": {"value": 0}}
+        json_schema_extra = {"target": {"value": 0}}
 
 
 class ConfigExecutor(Config):
@@ -124,7 +124,6 @@ class ConfigExecutor(Config):
     field: Literal["dependentDropdownlist"] = "dependentDropdownlist"
     class Config:
         title = "Task"
-        schema_extra = {"target": "value"}
 
 
 class PackageConfigs(Configs):
