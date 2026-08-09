@@ -3,13 +3,13 @@ import setuptools
 
 setuptools.setup(
     name="path-deviation-tracker",
-    version="0.1.0",
+    version="0.0.1",
     author="DigiNova",
     author_email="info@diginova.com.tr",
     description="NovaVision Path Deviation Tracker Capsule",
     url="https://github.com/novavision-ai/path-deviation-tracker",
     license="MIT",
-    install_requires=["sdk", "opencv-python-headless"],
+    install_requires=["pydantic", "opencv-python-headless"],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
