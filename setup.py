@@ -9,7 +9,7 @@ setuptools.setup(
     description="NovaVision Path Deviation Tracker Capsule",
     url="https://github.com/novavision-ai/path-deviation-tracker",
     license="MIT",
-    install_requires=["pydantic", "opencv-python-headless"],
+    install_requires=["sdk", "opencv-python-headless"],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
