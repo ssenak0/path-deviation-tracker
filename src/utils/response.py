@@ -1,50 +1,14 @@
-import os
-import sys
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../'))
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../'))
+from sdks.novavision.src.helper.package import PackageHelper
 
-try:
-    from sdks.novavision.src.helper.package import PackageHelper
-except ImportError as e:
-    raise ImportError(f"NovaVision import failed: {e}")
-
-try:
-    from capsules.PathDeviationTracker.src.models.PackageModel import (
-        PackageModel, PackageConfigs, ConfigExecutor, PathDeviationExecutorConfig,
-        PathDeviationResponse, PathDeviationOutputs, OutputAnnotatedImage, OutputPathDeviation
-    )
-except ImportError:
-    try:
-        from capsules.Package.src.models.PackageModel import (
-            PackageModel, PackageConfigs, ConfigExecutor, PathDeviationExecutorConfig,
-            PathDeviationResponse, PathDeviationOutputs, OutputAnnotatedImage, OutputPathDeviation
-        )
-    except ImportError:
-        from src.models.PackageModel import (
-            PackageModel, PackageConfigs, ConfigExecutor, PathDeviationExecutorConfig,
-            PathDeviationResponse, PathDeviationOutputs, OutputAnnotatedImage, OutputPathDeviation
-        )
+from src.models.PackageModel import (
+    ConfigExecutor, OutputDetections, PackageConfigs, PackageModel,
+    PathDeviationTrackerExecutorConfig, PathDeviationOutputs, PathDeviationResponse,
+)
 
 
 def build_response(context):
-    raw_img = getattr(context, "output_annotated_image", getattr(context, "image", None))
-    outputAnnotatedImage = OutputAnnotatedImage(value=raw_img)
-    
-    outputPathDeviation = OutputPathDeviation(
-        value=getattr(context, "output_path_deviation", [])
-    )
-
-    outputs = PathDeviationOutputs(
-        outputAnnotatedImage=outputAnnotatedImage,
-        outputPathDeviation=outputPathDeviation
-    )
-    response = PathDeviationResponse(outputs=outputs)
-    pathExecutor = PathDeviationExecutorConfig(value=response)
-    configExecutor = ConfigExecutor(value=pathExecutor)
-    packageConfigs = PackageConfigs(executor=configExecutor)
-
-    
-    package = PackageHelper(packageModel=PackageModel, packageConfigs=packageConfigs)
-    packageModel = package.build_model(context)
-    
-    return packageModel
+    output = OutputDetections(value=context.output_detections)
+    response = PathDeviationResponse(outputs=PathDeviationOutputs(outputDetections=output))
+    executor = PathDeviationTrackerExecutorConfig(value=response)
+    configs = PackageConfigs(executor=ConfigExecutor(value=executor))
+    return PackageHelper(packageModel=PackageModel, packageConfigs=configs).build_model(context)

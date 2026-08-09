@@ -1,42 +1,34 @@
-from typing import Optional, Union, List, Any
-from typing_extensions import Literal
-from pydantic import Field, validator
+"""NovaVision Package Model Şartnamesine uygun capsule tanımı."""
 
-try:
-    from sdks.novavision.src.base.model import (
-        Package, Image, Inputs, Configs, Outputs, Response,
-        Request, Config, Input, Output, Detections
-    )
-except ImportError as e:
-    raise ImportError(f"NovaVision model import failed: {e}")
+from typing import List, Literal, Optional, Union
+
+from pydantic import Field
+from sdks.novavision.src.base.model import Config, Configs, Image, Input, Inputs, Output, Outputs, Package, Request, Response
 
 
 class InputImage(Input):
+    """Video Feed'den gelen, video metadata taşıyan güncel kare."""
     name: Literal["inputImage"] = "inputImage"
-    value: Union[List[Image], Image, Any]
-    type: str = "object"
-
-    @validator("type", pre=True, always=True)
-    def set_type_based_on_value(cls, value, values):
-        val = values.get("value", value)
-        if isinstance(val, list):
-            return "list"
-        return "object"
+    value: Image
+    type: Literal["Image"] = "Image"
+    field: Literal["hiddenInput"] = "hiddenInput"
 
     class Config:
         title = "Image"
 
 
 class InputDetections(Input):
-    name: Literal["inputDetections"] = "inputDetections"
-    value: Any
-    type: str = "list"
+    name: Literal["detections"] = "detections"
+    value: List[dict]
+    type: Literal["Detections"] = "Detections"
+    field: Literal["hiddenInput"] = "hiddenInput"
+
     class Config:
         title = "Detections"
 
 
-class OptionAnchorCenter(Config):
-    name: Literal["Center"] = "Center"
+class ConfigAnchorCenter(Config):
+    name: Literal["CENTER"] = "CENTER"
     value: Literal["CENTER"] = "CENTER"
     type: Literal["string"] = "string"
     field: Literal["option"] = "option"
@@ -44,8 +36,8 @@ class OptionAnchorCenter(Config):
         title = "Center"
 
 
-class OptionAnchorBottomCenter(Config):
-    name: Literal["BottomCenter"] = "BottomCenter"
+class ConfigAnchorBottomCenter(Config):
+    name: Literal["BOTTOM_CENTER"] = "BOTTOM_CENTER"
     value: Literal["BOTTOM_CENTER"] = "BOTTOM_CENTER"
     type: Literal["string"] = "string"
     field: Literal["option"] = "option"
@@ -53,8 +45,8 @@ class OptionAnchorBottomCenter(Config):
         title = "Bottom Center"
 
 
-class OptionAnchorTopCenter(Config):
-    name: Literal["TopCenter"] = "TopCenter"
+class ConfigAnchorTopCenter(Config):
+    name: Literal["TOP_CENTER"] = "TOP_CENTER"
     value: Literal["TOP_CENTER"] = "TOP_CENTER"
     type: Literal["string"] = "string"
     field: Literal["option"] = "option"
@@ -62,173 +54,77 @@ class OptionAnchorTopCenter(Config):
         title = "Top Center"
 
 
-class OptionAnchorCenterLeft(Config):
-    name: Literal["CenterLeft"] = "CenterLeft"
-    value: Literal["CENTER_LEFT"] = "CENTER_LEFT"
-    type: Literal["string"] = "string"
-    field: Literal["option"] = "option"
-    class Config:
-        title = "Center Left"
-
-
-class OptionAnchorCenterRight(Config):
-    name: Literal["CenterRight"] = "CenterRight"
-    value: Literal["CENTER_RIGHT"] = "CENTER_RIGHT"
-    type: Literal["string"] = "string"
-    field: Literal["option"] = "option"
-    class Config:
-        title = "Center Right"
-
-
-class ConfigDrawTrue(Config):
-    name: Literal["True"] = "True"
-    value: Literal[True] = True
-    type: Literal["bool"] = "bool"
-    field: Literal["option"] = "option"
-    class Config:
-        title = "Enable"
-
-
-class ConfigDrawFalse(Config):
-    name: Literal["False"] = "False"
-    value: Literal[False] = False
-    type: Literal["bool"] = "bool"
-    field: Literal["option"] = "option"
-    class Config:
-        title = "Disable"
-
-
 class ConfigTriggeringAnchor(Config):
-    name: Literal["ConfigTriggeringAnchor"] = "ConfigTriggeringAnchor"
-    value: Union[
-        OptionAnchorCenter,
-        OptionAnchorBottomCenter,
-        OptionAnchorTopCenter,
-        OptionAnchorCenterLeft,
-        OptionAnchorCenterRight
-    ]
+    name: Literal["triggeringAnchor"] = "triggeringAnchor"
+    value: Union[ConfigAnchorCenter, ConfigAnchorBottomCenter, ConfigAnchorTopCenter]
     type: Literal["object"] = "object"
     field: Literal["dropdownlist"] = "dropdownlist"
     class Config:
-        title = "Triggering Anchor"
+        title = "Tracking Anchor"
+        schema_extra = {"target": "value"}
 
 
 class ConfigReferencePath(Config):
-    name: Literal["ConfigReferencePath"] = "ConfigReferencePath"
-    value: str = "[[100, 200], [200, 300], [300, 400]]"
+    name: Literal["referencePath"] = "referencePath"
+    value: str = Field(default="[[100, 200], [200, 300]]")
     type: Literal["string"] = "string"
     field: Literal["textInput"] = "textInput"
     class Config:
-        title = "Reference Path Coordinates"
-
-
-class ConfigDeviationThreshold(Config):
-    name: Literal["ConfigDeviationThreshold"] = "ConfigDeviationThreshold"
-    value: float = Field(default=50.0, ge=0.0)
-    type: Literal["number"] = "number"
-    field: Literal["textInput"] = "textInput"
-    class Config:
-        title = "Max Fréchet Deviation Threshold"
-
-
-class ConfigDrawBBox(Config):
-    name: Literal["ConfigDrawBBox"] = "ConfigDrawBBox"
-    value: Union[ConfigDrawTrue, ConfigDrawFalse]
-    type: Literal["object"] = "object"
-    field: Literal["dropdownlist"] = "dropdownlist"
-    class Config:
-        title = "Drawing BBox and Trajectory"
-
-
-class OutputAnnotatedImage(Output):
-    name: Literal["outputAnnotatedImage"] = "outputAnnotatedImage"
-    value: Union[List[Image], Image, Any]
-    type: str = "object"
-
-    @validator("type", pre=True, always=True)
-    def set_type_based_on_value(cls, value, values):
-        val = values.get("value", value)
-        if isinstance(val, list):
-            return "list"
-        return "object"
-
-    class Config:
-        title = "Annotated Image"
-
-
-class OutputPathDeviation(Output):
-    name: Literal["outputPathDeviation"] = "outputPathDeviation"
-    value: Any
-    type: Literal["list"] = "list"
-    class Config:
-        title = "Path Deviation Detections"
-
-
-class PathDeviationConfigs(Configs):
-    triggeringAnchor: ConfigTriggeringAnchor
-    referencePath: ConfigReferencePath
-    deviationThreshold: ConfigDeviationThreshold
-    drawBBox: ConfigDrawBBox
+        title = "Reference Path ([x, y] JSON)"
 
 
 class PathDeviationInputs(Inputs):
     inputImage: InputImage
-    inputDetections: InputDetections
+    detections: InputDetections
+
+
+class PathDeviationConfigs(Configs):
+    referencePath: ConfigReferencePath
+    triggeringAnchor: ConfigTriggeringAnchor
+
+
+class OutputDetections(Output):
+    name: Literal["outputDetections"] = "outputDetections"
+    value: List[dict]
+    type: Literal["Detections"] = "Detections"
+
+    class Config:
+        title = "Detections/ROI"
 
 
 class PathDeviationOutputs(Outputs):
-    outputAnnotatedImage: OutputAnnotatedImage
-    outputPathDeviation: OutputPathDeviation
+    outputDetections: OutputDetections
 
 
 class PathDeviationRequest(Request):
     inputs: Optional[PathDeviationInputs]
     configs: PathDeviationConfigs
     class Config:
-        schema_extra = {
-            "target": "configs"
-        }
-        json_schema_extra = {
-            "target": "configs"
-        }
+        schema_extra = {"target": "configs"}
 
 
 class PathDeviationResponse(Response):
     outputs: PathDeviationOutputs
 
 
-class PathDeviationExecutorConfig(Config):
-    name: Literal["PathDeviationExecutor"] = "PathDeviationExecutor"
+class PathDeviationTrackerExecutorConfig(Config):
+    name: Literal["PathDeviationTrackerExecutor"] = "PathDeviationTrackerExecutor"
     value: Union[PathDeviationRequest, PathDeviationResponse]
     type: Literal["object"] = "object"
     field: Literal["option"] = "option"
     class Config:
-        title = "Path Deviation V2 Analytics"
-        schema_extra = {
-            "target": {
-                "value": 0
-            }
-        }
-        json_schema_extra = {
-            "target": {
-                "value": 0
-            }
-        }
+        title = "Path Deviation"
+        schema_extra = {"target": {"value": 0}}
 
 
 class ConfigExecutor(Config):
     name: Literal["ConfigExecutor"] = "ConfigExecutor"
-    value: Union[PathDeviationExecutorConfig]
+    value: Union[PathDeviationTrackerExecutorConfig]
     type: Literal["executor"] = "executor"
     field: Literal["dependentDropdownlist"] = "dependentDropdownlist"
     class Config:
         title = "Task"
-        schema_extra = {
-            "target": "value"
-        }
-        json_schema_extra = {
-            "target": "value"
-        }
+        schema_extra = {"target": "value"}
 
 
 class PackageConfigs(Configs):
