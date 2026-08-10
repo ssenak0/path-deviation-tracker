@@ -41,9 +41,8 @@ biçimde döner.
 
 ## Yapı
 
-- `src/models/PackageModel.py`: NovaVision Package Model şeması
-- `src/utils/engine.py`: SDK'dan bağımsız, doğrulama ve durum yönetimli çekirdek
-- `src/executors/PathDeviationTrackerExecutor.py`: NovaVision `Component` tabanlı capsule çalıştırıcısı
+- `src/models/PackageModel.py`: NovaVision SDK ile tam uyumlu, tek executor'lı capsule (model) tanımı
+- `src/executors/PathDeviationTrackerExecutor.py`: NovaVision `Capsule` tabanlı capsule çalıştırıcısı
 - `examples/run_example.py`: SDK gerektirmeyen, çalışır örnek
 
 ## Hızlı deneme
