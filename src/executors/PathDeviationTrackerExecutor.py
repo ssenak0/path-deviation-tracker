@@ -10,9 +10,11 @@ from sdks.novavision.src.base.component import Component
 from sdks.novavision.src.helper.executor import Executor
 from sdks.novavision.src.base.model import Image
 
-from novavision.path_deviation_tracker.models.PackageModel import PackageModel
-from novavision.path_deviation_tracker.utils.engine import PathDeviationService, ValidationError
-from novavision.path_deviation_tracker.utils.response import build_response
+sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
+
+from src.models.PackageModel import PackageModel
+from src.utils.engine import PathDeviationService, ValidationError
+from src.utils.response import build_response
 
 
 class PathDeviationTrackerExecutor(Component):
