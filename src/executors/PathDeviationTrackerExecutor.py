@@ -41,30 +41,6 @@ class PathDeviationTrackerExecutor(Component):
         return value
 
     @staticmethod
-    def _get_video_identifier(image) -> str:
-        """Video Feed Image nesnesinden video_metadata.video_identifier değerini alır."""
-        current = image
-        # SDK nesnesi, Pydantic model veya JSON/dict taşıma biçimini destekler.
-        for _ in range(3):
-            if isinstance(current, dict):
-                metadata = current.get("video_metadata") or current.get("videoMetadata")
-                if metadata:
-                    identifier = metadata.get("video_identifier") or metadata.get("videoIdentifier")
-                    if identifier:
-                        return str(identifier)
-                current = current.get("value")
-            else:
-                metadata = getattr(current, "video_metadata", None) or getattr(current, "videoMetadata", None)
-                if metadata:
-                    identifier = getattr(metadata, "video_identifier", None) or getattr(metadata, "videoIdentifier", None)
-                    if identifier:
-                        return str(identifier)
-                current = getattr(current, "value", None)
-            if current is None:
-                break
-        raise ValidationError("Video Feed inputImage içinde video_metadata.video_identifier bulunamadı.")
-
-    @staticmethod
     def _to_dict(detection):
         if isinstance(detection, dict):
             return detection
@@ -75,7 +51,8 @@ class PathDeviationTrackerExecutor(Component):
         raise ValidationError("detections içindeki öğeler dict veya Nova Detection nesnesi olmalıdır.")
 
     def run(self):
-        video_id = self._get_video_identifier(self.image)
+        # Tek bir sabit videomuz olduğu için metadata araması yapmıyoruz.
+        video_id = "default_video"
         
         # Hocanın standart mimarisine uyum sağlamak ve pipeline senkronizasyonunu 
         # tetiklemek için resmi Redis üzerinden geçiriyoruz.
