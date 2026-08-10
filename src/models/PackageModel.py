@@ -140,22 +140,16 @@ class PathDeviationTrackerExecutorConfig(Config):
         json_schema_extra = {"target": {"value": 0}}
 
 
-class DummyExecutorConfig(Config):
-    name: Literal["DummyExecutorConfig"] = "DummyExecutorConfig"
-    value: Literal["Dummy"] = "Dummy"
-    type: Literal["object"] = "object"
-    field: Literal["option"] = "option"
-    class Config:
-        title = "Seçmeyin"
-
-
 class ConfigExecutor(Config):
     name: Literal["ConfigExecutor"] = "ConfigExecutor"
-    value: Union[PathDeviationTrackerExecutorConfig, DummyExecutorConfig]
+    value: Union[PathDeviationTrackerExecutorConfig]
     type: Literal["executor"] = "executor"
     field: Literal["dependentDropdownlist"] = "dependentDropdownlist"
     class Config:
         title = "Task"
+        json_schema_extra = {
+            "target": "value"
+        }
 
 
 class PackageConfigs(Configs):
