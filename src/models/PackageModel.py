@@ -75,7 +75,6 @@ class ConfigTriggeringAnchor(Config):
     field: Literal["dropdownlist"] = "dropdownlist"
     class Config:
         title = "Tracking Anchor"
-        json_schema_extra = {"target": "value"}
 
 
 class ConfigReferencePath(Config):
