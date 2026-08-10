@@ -8,6 +8,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../../../../"))
 
 from sdks.novavision.src.base.component import Capsule
 from sdks.novavision.src.helper.executor import Executor
+from sdks.novavision.src.base.model import Image
 
 from novavision.path_deviation_tracker.models.PackageModel import PackageModel
 from novavision.path_deviation_tracker.utils.engine import PathDeviationService, ValidationError
@@ -18,7 +19,7 @@ class PathDeviationTrackerExecutor(Capsule):
     def __init__(self, request, bootstrap):
         super().__init__(request, bootstrap)
         self.request.model = PackageModel(**self.request.data)
-        self.input_image = self.request.get_param("inputImage")
+        self.image = self.request.get_param("inputImage")
         self.detections = self.request.get_param("detections")
         self.reference_path = self._parse_reference_path(self.request.get_param("referencePath"))
         self.triggering_anchor = self.request.get_param("triggeringAnchor") or "CENTER"
@@ -72,8 +73,16 @@ class PathDeviationTrackerExecutor(Capsule):
         raise ValidationError("detections içindeki öğeler dict veya Nova Detection nesnesi olmalıdır.")
 
     def run(self):
-        video_id = self._get_video_identifier(self.input_image)
-        detections = [self._to_dict(item) for item in self.detections]
+        video_id = self._get_video_identifier(self.image)
+        
+        # Hocanın standart mimarisine uyum sağlamak ve pipeline senkronizasyonunu 
+        # tetiklemek için resmi Redis üzerinden geçiriyoruz.
+        if self.image:
+            img = Image.get_frame(img=self.image, redis_db=self.redis_db)
+            self.image = Image.set_frame(img=img, package_uID=self.uID, redis_db=self.redis_db)
+
+        detections = [self._to_dict(item) for item in self.detections] if self.detections else []
+        
         self.output_detections = self.service.process_frame(
             video_id=video_id,
             detections=detections,
