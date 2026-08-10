@@ -89,7 +89,8 @@ class PathDeviationTrackerExecutor(Capsule):
             reference_path=self.reference_path,
             triggering_anchor=self.triggering_anchor,
         )
-        return build_response(self)
+        packageModel = build_response(context=self)
+        return packageModel
 
 
 if __name__ == "__main__":
