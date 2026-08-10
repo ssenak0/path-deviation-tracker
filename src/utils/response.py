@@ -11,4 +11,6 @@ def build_response(context):
     response = PathDeviationTrackerExecutorResponse(outputs=PathDeviationOutputs(outputDetections=output))
     executor = PathDeviationTrackerExecutor(value=response)
     configs = PackageConfigs(executor=ConfigExecutor(value=executor))
-    return PackageHelper(packageModel=PackageModel, packageConfigs=configs).build_model(context)
+    package = PackageHelper(packageModel=PackageModel, packageConfigs=configs)
+    packageModel = package.build_model(context)
+    return packageModel
