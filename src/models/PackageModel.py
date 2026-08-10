@@ -35,7 +35,12 @@ class Detection(Model):
     confidence: Optional[float] = None
     classLabel: Optional[str] = None
     classId: Optional[int] = None
-    tracker_id: Optional[Union[str, int]] = None
+    trackerID: Optional[Union[str, int]] = None
+    imgUID: Optional[str] = None
+    keyPoints: Optional[list] = None
+    connections: Optional[list] = None
+    segmentType: Optional[str] = None
+    angle: Optional[float] = None
     metadata: Optional[dict] = None
 
 

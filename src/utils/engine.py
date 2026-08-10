@@ -91,9 +91,9 @@ class PathDeviationService:
         now = time()
         output: List[dict] = []
         for detection in detections:
-            tracker_id = detection.get("tracker_id")
+            tracker_id = detection.get("trackerID") or detection.get("tracker_id")
             if tracker_id is None or str(tracker_id).strip() == "":
-                raise ValidationError("Her detection için tracker_id zorunludur.")
+                raise ValidationError("Her detection için tracker_id veya trackerID zorunludur.")
             point = self._extract_anchor(detection, triggering_anchor)
             key = f"path-deviation:{video_id}:{tracker_id}"
             state = self.store.get(key) or {"points": [], "updated_at": now}
