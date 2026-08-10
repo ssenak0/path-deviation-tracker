@@ -115,10 +115,20 @@ class PathDeviationService:
     def _extract_anchor(detection: Mapping[str, object], anchor: str) -> Point:
         if "x" in detection and "y" in detection and anchor == "CENTER":
             return float(detection["x"]), float(detection["y"])
+            
+        bbox = detection.get("boundingBox", detection)
+        if not isinstance(bbox, Mapping):
+            if hasattr(bbox, "dict"):
+                bbox = bbox.dict()
+            elif hasattr(bbox, "model_dump"):
+                bbox = bbox.model_dump()
+            else:
+                bbox = detection
+
         required = ("left", "top", "width", "height")
-        if all(name in detection for name in required):
-            center_x = float(detection["left"]) + float(detection["width"]) / 2
-            top, height = float(detection["top"]), float(detection["height"])
+        if all(name in bbox for name in required):
+            center_x = float(bbox["left"]) + float(bbox["width"]) / 2
+            top, height = float(bbox["top"]), float(bbox["height"])
             anchors = {"CENTER": (center_x, top + height / 2), "TOP_CENTER": (center_x, top), "BOTTOM_CENTER": (center_x, top + height)}
             if anchor in anchors:
                 return anchors[anchor]

@@ -2,7 +2,7 @@
 
 from typing import List, Literal, Optional, Union
 from pydantic import Field, validator
-from sdks.novavision.src.base.model import Config, Configs, Image, Input, Inputs, Output, Outputs, Package, Request, Response
+from sdks.novavision.src.base.model import Config, Configs, Image, Input, Inputs, Output, Outputs, Package, Request, Response, Model
 
 
 class InputImage(Input):
@@ -23,15 +23,31 @@ class InputImage(Input):
         title = "Image"
 
 
+class BoundingBox(Model):
+    left: float
+    top: float
+    width: float
+    height: float
+
+
+class Detection(Model):
+    boundingBox: Optional[BoundingBox] = None
+    confidence: Optional[float] = None
+    classLabel: Optional[str] = None
+    classId: Optional[int] = None
+    tracker_id: Optional[Union[str, int]] = None
+    metadata: Optional[dict] = None
+
+
 class InputDetections(Input):
     name: Literal["detections"] = "detections"
-    value: Union[List[dict], dict]
+    value: Union[List[Detection], Detection]
     type: str = "object"
 
     @validator("type", pre=True, always=True)
     def set_type_based_on_value(cls, value, values):
         val = values.get('value')
-        if isinstance(val, dict):
+        if isinstance(val, Detection):
             return "object"
         elif isinstance(val, list):
             return "list"
@@ -98,13 +114,13 @@ class PathDeviationConfigs(Configs):
 
 class OutputDetections(Output):
     name: Literal["outputDetections"] = "outputDetections"
-    value: Union[List[dict], dict]
+    value: Union[List[Detection], Detection]
     type: str = "object"
 
     @validator("type", pre=True, always=True)
     def set_type_based_on_value(cls, value, values):
         val = values.get('value')
-        if isinstance(val, dict):
+        if isinstance(val, Detection):
             return "object"
         elif isinstance(val, list):
             return "list"
