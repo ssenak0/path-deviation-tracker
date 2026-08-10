@@ -6,7 +6,7 @@ import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../../../"))
 
-from sdks.novavision.src.base.component import Capsule
+from sdks.novavision.src.base.component import Component
 from sdks.novavision.src.helper.executor import Executor
 from sdks.novavision.src.base.model import Image
 
@@ -15,7 +15,7 @@ from novavision.path_deviation_tracker.utils.engine import PathDeviationService,
 from novavision.path_deviation_tracker.utils.response import build_response
 
 
-class PathDeviationTrackerExecutor(Capsule):
+class PathDeviationTrackerExecutor(Component):
     def __init__(self, request, bootstrap):
         super().__init__(request, bootstrap)
         self.request.model = PackageModel(**self.request.data)
