@@ -1,6 +1,6 @@
 from sdks.novavision.src.helper.package import PackageHelper
 
-from src.models.PackageModel import (
+from novavision.path_deviation_tracker.models.PackageModel import (
     ConfigExecutor, OutputDetections, PackageConfigs, PackageModel,
     PathDeviationTrackerExecutorConfig, PathDeviationOutputs, PathDeviationResponse,
 )
