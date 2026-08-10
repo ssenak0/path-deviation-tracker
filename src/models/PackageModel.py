@@ -119,20 +119,20 @@ class PathDeviationOutputs(Outputs):
     outputDetections: OutputDetections
 
 
-class PathDeviationRequest(Request):
+class PathDeviationTrackerExecutorRequest(Request):
     inputs: Optional[PathDeviationInputs]
     configs: PathDeviationConfigs
     class Config:
         json_schema_extra = {"target": "configs"}
 
 
-class PathDeviationResponse(Response):
+class PathDeviationTrackerExecutorResponse(Response):
     outputs: PathDeviationOutputs
 
 
-class PathDeviationTrackerExecutorConfig(Config):
+class PathDeviationTrackerExecutor(Config):
     name: Literal["PathDeviationTrackerExecutor"] = "PathDeviationTrackerExecutor"
-    value: Union[PathDeviationRequest, PathDeviationResponse]
+    value: Union[PathDeviationTrackerExecutorRequest, PathDeviationTrackerExecutorResponse]
     type: Literal["object"] = "object"
     field: Literal["option"] = "option"
     class Config:
@@ -142,7 +142,7 @@ class PathDeviationTrackerExecutorConfig(Config):
 
 class ConfigExecutor(Config):
     name: Literal["ConfigExecutor"] = "ConfigExecutor"
-    value: Union[PathDeviationTrackerExecutorConfig]
+    value: Union[PathDeviationTrackerExecutor]
     type: Literal["executor"] = "executor"
     field: Literal["dependentDropdownlist"] = "dependentDropdownlist"
     class Config:
