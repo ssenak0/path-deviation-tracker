@@ -54,11 +54,6 @@ class PathDeviationTrackerExecutor(Component):
         # Tek bir sabit videomuz olduğu için metadata araması yapmıyoruz.
         video_id = "default_video"
         
-        # Hocanın standart mimarisine uyum sağlamak ve pipeline senkronizasyonunu 
-        # tetiklemek için resmi Redis üzerinden geçiriyoruz.
-        if self.image:
-            img = Image.get_frame(img=self.image, redis_db=self.redis_db)
-            self.image = Image.set_frame(img=img, package_uID=self.uID, redis_db=self.redis_db)
 
         detections = [self._to_dict(item) for item in self.detections] if self.detections else []
         
