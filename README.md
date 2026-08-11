@@ -1,75 +1,74 @@
-# Path Deviation Tracker
+# Path Deviation Tracker (Yol Sapması Takibi)
 
-Roboflow'un **Path Deviation** bloğundan esinlenen, NovaVision'a bağlanabilen yol
-uyumluluk bileşeni. Bu paket görüntü tespiti yapmaz; Byte Tracker / tespit bloğundan
-gelen `tracker_id`li sonuçların rotasını kontrol eder.
+Bu proje, NovaVision platformu üzerinde çalışan otonom bir **Veri Analiz (Analytics) Kapsülü**dür. Amacı, bir video akışı içerisindeki hareketli nesnelerin (örneğin araçların) önceden belirlenmiş bir referans rotasına olan sapma miktarını (path deviation) gerçek zamanlı olarak hesaplamaktır.
 
-Her video ve `tracker_id` için nesnenin merkez noktaları saklanır. Bu gerçek rota,
-referans rota ile **discrete Fréchet distance** kullanılarak karşılaştırılır. Küçük
-sonuç, nesnenin beklenen yolu daha yakından takip ettiği anlamına gelir.
+Kapsül, bir "Görüntü İşleme" modülü **değildir**. Gelen video piksellerini manipüle etmez. Yalnızca ObjectTracking modülünden gelen sınır kutularını (bounding box) ve araç kimliklerini (`trackerID`) kullanarak matematiksel analiz yapar. 
 
-## Üretim davranışı
+## 🚀 Proje Nasıl Çalışır?
 
-- Her `video_id` + `tracker_id` için rota ayrı tutulur; farklı videolar birbirine karışmaz.
-- Zorunlu alanlar doğrulanır: `video_id`, `tracker_id`, merkez koordinatı ve en az iki
-  noktadan oluşan referans rota.
-- Her rotanın belleği varsayılan olarak en fazla 300 kare tutar; eski noktalar atılır.
-- 1 saat yeni kare gelmeyen rota sıfırlanır. Bu değerler `PathDeviationSettings` ile
-  değiştirilebilir.
-- Çıktıdaki `path_deviation` piksel birimindedir. Eşik kararını iş akışı üstlenir;
-  örneğin `path_deviation > 40` alarm olarak yorumlanabilir.
+1. **Veri Toplama:** Kapsül, `VideoFeed` düğümünden anlık kareleri (senkronizasyon için) ve `ObjectTracking` düğümünden araçların koordinatlarını alır.
+2. **Çapa Noktası (Anchor) Tespiti:** Gelen araçların sınır kutusu üzerinden belirlenen çapa noktası (Örn: `CENTER` veya `BOTTOM_CENTER`) bulunur.
+3. **Sapma Hesaplaması:** Aracın çapa noktası ile kullanıcının belirlediği referans çizgisi (`reference_path`) arasındaki en kısa mesafe piksel bazında hesaplanır.
+4. **Veri Zenginleştirme:** Hesaplanan bu sapma değeri, aracın verisine `metadata` olarak eklenir (`path_deviation: 1001.02` vb.).
+5. **Çıktı:** Zenginleştirilmiş bu yeni tespit listesi (`outputDetections`), görselleştirme veya uyarı amacıyla bir sonraki düğüme (örneğin `DrawBoundingBox`) iletilir.
 
-**Önemli:** `InMemoryPathStore` tek process içindir. Şirket ortamında birden fazla
-worker/pod varsa, worker'ların hepsi aynı kalıcı `PathStore` uygulamasını (Redis gibi)
-kullanmalıdır. Aksi halde iki ardışık kare farklı workerlara düştüğünde rota geçmişi
-kaybolur. Canlı ortama almadan önce bu store adaptörü, kullandığınız Redis sözleşmesi
-ile bağlanmalıdır.
+## ⚡ Son Dönem Geliştirmeleri ve Optimizasyonlar
 
-## Girdi ve çıktı sözleşmesi
+- **Native Component Mimarisi:** NovaVision SDK gereksinimlerini karşılamak üzere kapsül, `Component` temel sınıfı üzerine inşa edilmiştir. İçe aktarma (import) yolları doğrudan `src` modülü üzerinden yapılandırılarak `ModuleNotFoundError` riskleri tamamen giderilmiştir.
+- **Yüksek Performanslı I/O Bypassi:** Bu kapsül, sadece koordinat hesabı yaptığı için standart Redis `get_frame` ve `set_frame` okuma/yazma döngüleri koddan çıkartılmıştır. Ağ yükü sıfırlanmış ve saniye-kare (FPS) hızı maksimize edilmiştir.
+- **Otonom Tekil Kamera Senaryosu:** Sistem, sabit bir kamera görüntüsü üzerinden çalışacak şekilde ayarlanmıştır. Hata fırlatmaya müsait olan katı "Kamera Kimliği" (`video_identifier`) meta-veri doğrulama süreçleri koddan kaldırılarak sistem tamamen otonom ve kesintisiz hale getirilmiştir.
 
-```python
-executor.process(
-    video_id="camera-12-2026-08-09T10:00",  # Capsule bunu inputImage metadata'sından alır.
-    detections=[{"tracker_id": "vehicle-27", "x": 120.5, "y": 320.0}],
-    reference_path=[[100, 320], [200, 320], [300, 320]],
-)
+---
+
+## 🛠 NovaVision Üzerinde Nasıl Çalıştırılır?
+
+Bu kapsülü NovaVision platformunda çalıştırabilmek için bir Flow (Akış) oluşturmanız gerekmektedir. Akış bağlantılarınızı ve parametrelerinizi aşağıdaki gibi ayarlamalısınız:
+
+### 1. Düğüm (Node) Bağlantıları (Flow)
+
+* **VideoFeed (Image)** ➔ PathDeviationTracker (`inputImage`) portuna.
+* **ObjectTracking (Detections)** ➔ PathDeviationTracker (`detections`) portuna.
+* **PathDeviationTracker (Detections)** ➔ DrawBoundingBox (`inputDetections`) portuna.
+* **VideoFeed (Image)** ➔ DrawBoundingBox (`inputImage`) portuna.
+
+> **Önemli:** `DrawBoundingBox` (veya başka bir çizim modülü) resmi PathDeviation üzerinden değil, **doğrudan VideoFeed üzerinden** almalıdır. PathDeviation yalnızca `outputDetections` (koordinat listesi) çıktısı verir.
+
+### 2. Kapsül Parametreleri (Configs)
+
+Kapsülü (Node) platform üzerinde seçtiğinizde yandaki ayarlardan şu parametreleri doldurmalısınız:
+
+- **`referencePath`**: Sapmanın ölçüleceği referans rotasını belirten, JSON formatında bir nokta listesi (Örn: `[[100, 320], [200, 320], [300, 320]]`). Minimum iki nokta girilmelidir.
+- **`triggeringAnchor`**: Sınır kutusunun neresinin arabanın konumu olarak kabul edileceği. Değerler: `CENTER`, `TOP_CENTER` veya `BOTTOM_CENTER`. Genellikle zemin teması için `BOTTOM_CENTER` önerilir.
+
+### 3. Çıktı Formatı Beklentisi
+
+Sistem çalıştığında, ürettiği `outputDetections` içindeki her bir araç nesnesinin sonuna aşağıdaki gibi bir **metadata** bloğu yerleştirilir:
+
+```json
+{
+  "boundingBox": {
+    "left": 1084.73,
+    "top": 112.16,
+    "width": 49.78,
+    "height": 36.85
+  },
+  "confidence": 0.45,
+  "classLabel": "car",
+  "trackerID": 1,
+  "metadata": {
+    "path_deviation": 1001.02,
+    "path_points": 1
+  }
+}
 ```
 
-Tespit merkezi `x`/`y` veya `left`/`top`/`width`/`height` olarak verilebilir. Her
-girdi tespiti korunur; `metadata.path_deviation` ve `metadata.path_points` eklenmiş
-biçimde döner.
+Bu veri yapısını alarak diğer platform analiz araçlarıyla araçların şeritten taşıp taşmadığına dair alarmlar üretebilirsiniz.
 
-## Yapı
+---
 
-- `src/models/PackageModel.py`: NovaVision SDK ile tam uyumlu, tek executor'lı capsule (model) tanımı
-- `src/executors/PathDeviationTrackerExecutor.py`: NovaVision `Capsule` tabanlı capsule çalıştırıcısı
-- `examples/run_example.py`: SDK gerektirmeyen, çalışır örnek
+## 📁 Proje Yapısı
 
-## Hızlı deneme
-
-```bash
-cd /Users/sena/Documents/Playground/path-deviation-tracker
-python3 examples/run_example.py
-```
-
-Örnek üç ardışık kare gönderir. Aynı `video_id` ve `tracker_id` kullanıldığı için
-rota korunur; üçüncü karedeki sonuç, o ana kadarki rotanın referans yoldan sapmasıdır.
-
-## NovaVision girdileri
-
-Capsule executor şu parametreleri bekler:
-
-- `inputImage`: Video Feed'den gelen `Image`; `video_metadata.video_identifier` içermelidir
-- `detections`: Object Tracking'den gelen `Detections`; her tespitte `tracker_id` bulunmalıdır
-- `referencePath`: En az iki `[x, y]` noktası
-- `triggeringAnchor`: `CENTER`, `TOP_CENTER` veya `BOTTOM_CENTER`
-
-Çıktıda her detection'ın `metadata.path_deviation` alanı eklenir. Durum bellek içindedir; bu yüzden
-ardışık video kareleri aynı çalışan süreçte işlenmelidir.
-
-### Flow bağlantıları
-
-- Video Feed `Image` → Path Deviation `Image` (`inputImage`)
-- Object Tracking `Detections` → Path Deviation `Detections` (`detections`)
-- Path Deviation `Detections/ROI` (`outputDetections`) → Draw Bounding Box `Detections/ROI`
-- Video Feed `Image` → Draw Bounding Box `Image`
+- `src/models/PackageModel.py`: NovaVision SDK ile tam uyumlu kapsül modeli, veri tipleri ve girdi/çıktı tanımları (Pydantic şemaları).
+- `src/executors/PathDeviationTrackerExecutor.py`: Modülün can damarı olan ana çalıştırıcı sınıf. Verileri karşılar, `PathDeviationService` motorunu tetikler ve JSON yanıtı döndürür.
+- `src/utils/engine.py`: İki nokta arası mesafe hesaplama, sapma mantığı ve `trackerID` sözlüğü (belleği) yönetimini gerçekleştiren servis sınıfı.
+- `src/utils/response.py`: Çıkan veriyi SDK'nın beklediği formata sararak `PackageHelper` aracılığıyla dönüştüren yardımcı metot.
