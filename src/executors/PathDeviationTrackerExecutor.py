@@ -35,16 +35,21 @@ class PathDeviationTrackerExecutor(Component):
     @staticmethod
     def _parse_reference_roi(value):
         if not value:
-            return [[0,0], [0,1]] # default fallback to prevent crashes if empty
+            return [[0,0], [0,1]] # default fallback
         try:
             roi_data = json.loads(value)
-            polylines = roi_data.get("polyLines", [])
-            if polylines:
-                coords = polylines[0].get("points", [])
+            
+            # Once polygons (kapali alan), yoksa polyLines (cizgi) ara
+            shapes = roi_data.get("polygons", [])
+            if not shapes:
+                shapes = roi_data.get("polyLines", [])
+                
+            if shapes:
+                coords = shapes[0].get("points", [])
                 if len(coords) >= 4:
                     return [[coords[i], coords[i+1]] for i in range(0, len(coords), 2)]
         except Exception as error:
-            raise ValidationError("referenceRoi JSON parse edilemedi.") from error
+            pass
         return [[0,0], [0,1]]
 
     @staticmethod
