@@ -143,7 +143,7 @@ class PathDeviationService:
                 {"cx": int(point[0]), "cy": int(point[1])},
                 {"cx": int(closest_p[0]), "cy": int(closest_p[1])}
             ]
-            enriched["connections"] = [[0, 1]]
+            enriched["connections"] = [{"p1": 0, "p2": 1}]
             
             output.append(enriched)
         return output
