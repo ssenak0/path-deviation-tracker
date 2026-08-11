@@ -98,13 +98,27 @@ class ConfigTriggeringAnchor(Config):
         title = "Tracking Anchor"
 
 
-class ConfigReferencePath(Config):
-    name: Literal["referencePath"] = "referencePath"
-    value: str = Field(default="[[100, 200], [200, 300]]")
+class ConfigReferenceRoi(Config):
+    """
+    Region of Interest (ROI) selector for drawing the reference path.
+    Use this widget to draw the polyline that cars should follow.
+    """
+    name: Literal["referenceRoi"] = "referenceRoi"
+    value: str = Field(default="")
     type: Literal["string"] = "string"
-    field: Literal["textInput"] = "textInput"
+    field: Literal["widget"] = "widget"
+
     class Config:
-        title = "Reference Path ([x, y] JSON)"
+        json_schema_extra = {
+            "shortDescription": "Draw Reference Path",
+            "class": "\\novavision\\app\\widgets\\ROI",
+            "options": {
+                "isMultiple": "false",
+                "name": "roi",
+                "availableTypes": ["polyLine"],
+            },
+        }
+        title = "Reference Path (ROI)"
 
 
 class PathDeviationInputs(Inputs):
@@ -113,7 +127,7 @@ class PathDeviationInputs(Inputs):
 
 
 class PathDeviationConfigs(Configs):
-    referencePath: ConfigReferencePath
+    referenceRoi: ConfigReferenceRoi
     triggeringAnchor: ConfigTriggeringAnchor
 
 

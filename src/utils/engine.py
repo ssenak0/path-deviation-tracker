@@ -77,6 +77,34 @@ def discrete_frechet_distance(path_a: Sequence[Point], path_b: Sequence[Point]) 
     return previous[-1]
 
 
+def closest_point_on_segment(p: Point, a: Point, b: Point) -> Point:
+    ax, ay = a
+    bx, by = b
+    px, py = p
+    dx, dy = bx - ax, by - ay
+    if dx == 0 and dy == 0:
+        return a
+    t = ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)
+    t = max(0.0, min(1.0, t))
+    return (ax + t * dx, ay + t * dy)
+
+
+def closest_point_on_polyline(p: Point, polyline: Sequence[Point]) -> Point:
+    if not polyline:
+        return p
+    if len(polyline) == 1:
+        return polyline[0]
+    min_dist = float('inf')
+    closest = p
+    for i in range(len(polyline) - 1):
+        cp = closest_point_on_segment(p, polyline[i], polyline[i+1])
+        dist = hypot(p[0] - cp[0], p[1] - cp[1])
+        if dist < min_dist:
+            min_dist = dist
+            closest = cp
+    return closest
+
+
 class PathDeviationService:
     """Video ve tracker kimliğine göre rotayı saklar, tespitleri zenginleştirir."""
 
@@ -103,11 +131,20 @@ class PathDeviationService:
             self.store.set(key, {"points": points, "updated_at": now})
             enriched = dict(detection)
             deviation = round(discrete_frechet_distance(points, reference), 2)
-            # Roboflow Path Deviation ile aynı şekilde, değeri detection metadata'sına ekle.
+            
             metadata = dict(enriched.get("metadata") or {})
             metadata["path_deviation"] = deviation
             metadata["path_points"] = len(points)
             enriched["metadata"] = metadata
+            
+            # DrawBoundingBox'ın yeşil çizgi çizmesi için gereken noktalar
+            closest_p = closest_point_on_polyline(point, reference)
+            enriched["keyPoints"] = [
+                {"cx": int(point[0]), "cy": int(point[1])},
+                {"cx": int(closest_p[0]), "cy": int(closest_p[1])}
+            ]
+            enriched["connections"] = [[0, 1]]
+            
             output.append(enriched)
         return output
 

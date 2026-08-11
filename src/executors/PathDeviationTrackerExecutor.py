@@ -23,7 +23,8 @@ class PathDeviationTrackerExecutor(Component):
         self.request.model = PackageModel(**self.request.data)
         self.image = self.request.get_param("inputImage")
         self.detections = self.request.get_param("detections")
-        self.reference_path = self._parse_reference_path(self.request.get_param("referencePath"))
+        roi_str = self.request.get_param("referenceRoi")
+        self.reference_path = self._parse_reference_roi(roi_str)
         self.triggering_anchor = self.request.get_param("triggeringAnchor") or "CENTER"
         self.service = PathDeviationService()
 
@@ -32,13 +33,19 @@ class PathDeviationTrackerExecutor(Component):
         return {}
 
     @staticmethod
-    def _parse_reference_path(value):
-        if isinstance(value, str):
-            try:
-                return json.loads(value)
-            except json.JSONDecodeError as error:
-                raise ValidationError("referencePath geçerli JSON olmalıdır.") from error
-        return value
+    def _parse_reference_roi(value):
+        if not value:
+            return [[0,0], [0,1]] # default fallback to prevent crashes if empty
+        try:
+            roi_data = json.loads(value)
+            polylines = roi_data.get("polyLines", [])
+            if polylines:
+                coords = polylines[0].get("points", [])
+                if len(coords) >= 4:
+                    return [[coords[i], coords[i+1]] for i in range(0, len(coords), 2)]
+        except Exception as error:
+            raise ValidationError("referenceRoi JSON parse edilemedi.") from error
+        return [[0,0], [0,1]]
 
     @staticmethod
     def _to_dict(detection):
