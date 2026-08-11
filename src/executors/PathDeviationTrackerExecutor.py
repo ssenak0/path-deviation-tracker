@@ -39,13 +39,14 @@ class PathDeviationTrackerExecutor(Component):
         try:
             roi_data = json.loads(value)
             
-            # Once polygons (kapali alan), yoksa polyLines (cizgi) ara
+            # Check for polygons first, fallback to polyLines if not found
             shapes = roi_data.get("polygons", [])
             if not shapes:
                 shapes = roi_data.get("polyLines", [])
                 
             if shapes:
-                coords = shapes[0].get("points", [])
+                # Use the most recently drawn shape to avoid phantom coordinates
+                coords = shapes[-1].get("points", [])
                 if len(coords) >= 4:
                     return [[coords[i], coords[i+1]] for i in range(0, len(coords), 2)]
         except Exception as error:

@@ -1,7 +1,7 @@
-"""Üretim için yol sapması (discrete Fréchet distance) çekirdeği.
+"""Core logic for path deviation (discrete Fréchet distance) for production.
 
-Bu modül NovaVision SDK'ya bağlı değildir. Böylece servis/worker içinde aynı kod
-test edilebilir; executor yalnızca platform isteğini bu modülün girdisine çevirir.
+This module is not coupled with NovaVision SDK. Thus, the same code can be tested
+within a service/worker; the executor only translates the platform request to this module's input.
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ Point = Tuple[float, float]
 
 
 class ValidationError(ValueError):
-    """İstek sözleşmesine uymayan veriler için güvenli hata."""
+    """Safe error for data that does not conform to the request contract."""
 
 
 class PathStore(Protocol):
@@ -26,7 +26,7 @@ class PathStore(Protocol):
 
 
 class InMemoryPathStore:
-    """Tek worker veya geliştirme ortamı için thread-safe durum deposu."""
+    """Thread-safe state store for single worker or development environment."""
 
     def __init__(self) -> None:
         self._items: Dict[str, dict] = {}
@@ -53,13 +53,13 @@ class PathDeviationSettings:
 
     def __post_init__(self) -> None:
         if self.max_history_points < 2:
-            raise ValueError("max_history_points en az 2 olmalıdır.")
+            raise ValueError("max_history_points must be at least 2.")
 
 
 def discrete_frechet_distance(path_a: Sequence[Point], path_b: Sequence[Point]) -> float:
-    """Sıralamayı koruyan iki rota arasındaki discrete Fréchet uzaklığı."""
+    """Discrete Fréchet distance between two order-preserving paths."""
     if not path_a or not path_b:
-        raise ValidationError("Karşılaştırılan iki rota da boş olamaz.")
+        raise ValidationError("Neither of the compared paths can be empty.")
     previous = [0.0] * len(path_b)
     for i, first in enumerate(path_a):
         current = [0.0] * len(path_b)
@@ -106,7 +106,7 @@ def closest_point_on_polyline(p: Point, polyline: Sequence[Point]) -> Point:
 
 
 class PathDeviationService:
-    """Video ve tracker kimliğine göre rotayı saklar, tespitleri zenginleştirir."""
+    """Stores the path based on video and tracker ID, and enriches detections."""
 
     def __init__(self, store: PathStore | None = None, settings: PathDeviationSettings | None = None) -> None:
         self.store = store or InMemoryPathStore()
@@ -114,14 +114,14 @@ class PathDeviationService:
 
     def process_frame(self, video_id: str, detections: Sequence[Mapping[str, object]], reference_path: Sequence[Sequence[float]], triggering_anchor: str = "CENTER") -> List[dict]:
         if not isinstance(video_id, str) or not video_id.strip():
-            raise ValidationError("video_id zorunlu bir metindir.")
+            raise ValidationError("video_id is a required string.")
         reference = self._validate_path(reference_path)
         now = time()
         output: List[dict] = []
         for detection in detections:
             tracker_id = detection.get("trackerID") or detection.get("tracker_id")
             if tracker_id is None or str(tracker_id).strip() == "":
-                raise ValidationError("Her detection için tracker_id veya trackerID zorunludur.")
+                raise ValidationError("tracker_id or trackerID is required for each detection.")
             point = self._extract_anchor(detection, triggering_anchor)
             key = f"path-deviation:{video_id}:{tracker_id}"
             state = self.store.get(key) or {"points": [], "updated_at": now}
@@ -137,7 +137,7 @@ class PathDeviationService:
             metadata["path_points"] = len(points)
             enriched["metadata"] = metadata
             
-            # DrawBoundingBox'ın yeşil çizgi çizmesi için gereken noktalar
+            # Points required to draw the green line in DrawKeypoint
             closest_p = closest_point_on_polyline(point, reference)
             enriched["keyPoints"] = [
                 {"cx": int(point[0]), "cy": int(point[1])},
@@ -169,13 +169,13 @@ class PathDeviationService:
             anchors = {"CENTER": (center_x, top + height / 2), "TOP_CENTER": (center_x, top), "BOTTOM_CENTER": (center_x, top + height)}
             if anchor in anchors:
                 return anchors[anchor]
-        raise ValidationError("Detection seçilen anchor için gerekli koordinatları içermelidir.")
+        raise ValidationError("Detection must contain the necessary coordinates for the selected anchor.")
 
     @staticmethod
     def _validate_path(points: Sequence[Sequence[float]]) -> List[Point]:
         if not isinstance(points, Sequence) or len(points) < 2:
-            raise ValidationError("reference_path en az iki [x, y] noktası içermelidir.")
+            raise ValidationError("reference_path must contain at least two [x, y] points.")
         try:
             return [(float(point[0]), float(point[1])) for point in points]
         except (IndexError, TypeError, ValueError) as error:
-            raise ValidationError("Her reference_path noktası [x, y] olmalıdır.") from error
+            raise ValidationError("Each reference_path point must be [x, y].") from error
