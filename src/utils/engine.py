@@ -141,11 +141,25 @@ class PathDeviationService:
             
             # Points required to draw the green line in DrawKeypoint
             closest_p = closest_point_on_polyline(point, reference)
-            enriched["keyPoints"] = [
+            key_points = [
                 {"cx": int(point[0]), "cy": int(point[1])},
                 {"cx": int(closest_p[0]), "cy": int(closest_p[1])}
             ]
-            enriched["connections"] = [{"p1": 0, "p2": 1}]
+            connections = [{"p1": 0, "p2": 1}]
+            
+            # Draw the reference path polygon to visualize it
+            offset = 2
+            for i, p in enumerate(reference):
+                key_points.append({"cx": int(p[0]), "cy": int(p[1])})
+                if i > 0:
+                    connections.append({"p1": offset + i - 1, "p2": offset + i})
+            
+            # Close the polygon loop if it has more than 2 points
+            if len(reference) > 2:
+                connections.append({"p1": offset + len(reference) - 1, "p2": offset})
+            
+            enriched["keyPoints"] = key_points
+            enriched["connections"] = connections
             
             output.append(enriched)
         return output
