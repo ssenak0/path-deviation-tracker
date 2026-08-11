@@ -135,6 +135,8 @@ class PathDeviationService:
             metadata = dict(enriched.get("metadata") or {})
             metadata["path_deviation"] = deviation
             metadata["path_points"] = len(points)
+            # DEBUG ICIN EKLENDI: reference_path'i metadata'ya koyalim
+            metadata["debug_reference_path"] = reference
             enriched["metadata"] = metadata
             
             # Points required to draw the green line in DrawKeypoint
