@@ -98,6 +98,18 @@ class ConfigTriggeringAnchor(Config):
         title = "Tracking Anchor"
 
 
+class ConfigRoiScale(Config):
+    name: Literal["roiScale"] = "roiScale"
+    value: float = Field(default=1.0)
+    type: Literal["number"] = "number"
+    field: Literal["text"] = "text"
+    class Config:
+        title = "ROI Scale Factor"
+        json_schema_extra = {
+            "shortDescription": "If drawing shifts, adjust this (e.g. 0.5 for Mac Retina)",
+        }
+
+
 class ConfigReferenceRoi(Config):
     """
     Region of Interest (ROI) selector for drawing the reference path.
@@ -129,6 +141,7 @@ class PathDeviationInputs(Inputs):
 class PathDeviationConfigs(Configs):
     referenceRoi: ConfigReferenceRoi
     triggeringAnchor: ConfigTriggeringAnchor
+    roiScale: ConfigRoiScale
 
 
 class OutputDetections(Output):

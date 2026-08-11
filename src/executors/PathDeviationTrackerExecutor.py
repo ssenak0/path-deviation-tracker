@@ -24,7 +24,8 @@ class PathDeviationTrackerExecutor(Component):
         self.image = self.request.get_param("inputImage")
         self.detections = self.request.get_param("detections")
         roi_str = self.request.get_param("referenceRoi")
-        self.reference_path = self._parse_reference_roi(roi_str)
+        roi_scale = float(self.request.get_param("roiScale") or 1.0)
+        self.reference_path = self._parse_reference_roi(roi_str, roi_scale)
         self.triggering_anchor = self.request.get_param("triggeringAnchor") or "CENTER"
         self.service = PathDeviationService()
 
@@ -33,7 +34,7 @@ class PathDeviationTrackerExecutor(Component):
         return {}
 
     @staticmethod
-    def _parse_reference_roi(value):
+    def _parse_reference_roi(value, scale=1.0):
         if not value:
             return [[0,0], [0,1]] # default fallback
         try:
@@ -48,7 +49,7 @@ class PathDeviationTrackerExecutor(Component):
                 # Use the most recently drawn shape to avoid phantom coordinates
                 coords = shapes[-1].get("points", [])
                 if len(coords) >= 4:
-                    return [[coords[i], coords[i+1]] for i in range(0, len(coords), 2)]
+                    return [[coords[i] * scale, coords[i+1] * scale] for i in range(0, len(coords), 2)]
         except Exception as error:
             pass
         return [[0,0], [0,1]]
