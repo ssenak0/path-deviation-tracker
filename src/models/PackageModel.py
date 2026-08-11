@@ -115,7 +115,7 @@ class ConfigReferenceRoi(Config):
             "options": {
                 "isMultiple": "false",
                 "name": "roi",
-                "availableTypes": ["polyLine"],
+                "availableTypes": ["polyLine", "polygon"],
             },
         }
         title = "Reference Path (ROI)"
