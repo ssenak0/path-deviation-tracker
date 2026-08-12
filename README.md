@@ -26,12 +26,20 @@ Bu kapsülü NovaVision platformunda çalıştırabilmek için bir Flow (Akış)
 
 ### 1. Düğüm (Node) Bağlantıları (Flow)
 
-* **VideoFeed (Image)** ➔ PathDeviationTracker (`inputImage`) portuna.
-* **ObjectTracking (Detections)** ➔ PathDeviationTracker (`detections`) portuna.
-* **PathDeviationTracker (Detections)** ➔ DrawBoundingBox (`inputDetections`) portuna.
-* **VideoFeed (Image)** ➔ DrawBoundingBox (`inputImage`) portuna.
+Ekran görüntüsündeki akışa göre düğüm bağlantılarını şu şekilde kurmalısınız:
 
-> **Önemli:** `DrawBoundingBox` (veya başka bir çizim modülü) resmi PathDeviation üzerinden değil, **doğrudan VideoFeed üzerinden** almalıdır. PathDeviation yalnızca `outputDetections` (koordinat listesi) çıktısı verir.
+* **Video Feed (Image)** ➔ **YOLO Inference** (`inputImage`) portuna.
+* **Video Feed (Image)** ➔ **Object Tracking** (`inputImage`) portuna.
+* **Video Feed (Image)** ➔ **Path Deviation Tracker** (`inputImage`) portuna.
+* **Video Feed (Image)** ➔ **Draw Bounding Box** (`inputImage`) portuna.
+* **YOLO Inference (Detections)** ➔ **Object Tracking** (`detections`) portuna.
+* **Object Tracking (Detections)** ➔ **Path Deviation Tracker** (`detections`) portuna.
+* **Path Deviation Tracker (Detections)** ➔ **Draw Bounding Box** (`inputDetections`) portuna.
+* **Draw Bounding Box (Image)** ➔ **Draw Keypoint** (`inputImage`) portuna.
+* **Draw Bounding Box (Detections)** ➔ **Draw Keypoint** (`inputDetections`) portuna.
+* **Draw Keypoint (Image)** ➔ **Video View** (`inputImage`) portuna.
+
+> **Önemli:** `Path Deviation Tracker` herhangi bir görsel (Image) çıktısı üretmez, yalnızca `outputDetections` (koordinat listesi) çıktısı verir. Bu nedenle `Draw Bounding Box` ana görüntüyü doğrudan `Video Feed` üzerinden almalıdır. Sonrasında `Draw Bounding Box` hem görseli hem de tespit verilerini `Draw Keypoint`'e aktararak görselleştirme zincirini tamamlar.
 
 ### 2. Kapsül Parametreleri (Configs)
 
