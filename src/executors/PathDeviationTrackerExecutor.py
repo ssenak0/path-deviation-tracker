@@ -77,6 +77,17 @@ class PathDeviationTrackerExecutor(Component):
             reference_path=self.reference_path,
             triggering_anchor=self.triggering_anchor,
         )
+        
+        # --- DEBUG GIZLI MESAJ ---
+        # Arayüzden bize gelen o ham veriyi alıp ekrana (metadata'ya) yansıtıyoruz
+        roi_str = self.request.get_param("referenceRoi")
+        if self.output_detections:
+            for det in self.output_detections:
+                if "metadata" not in det:
+                    det["metadata"] = {}
+                det["metadata"]["raw_roi_string"] = roi_str
+        # -------------------------
+
         packageModel = build_response(context=self)
         return packageModel
 
