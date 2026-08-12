@@ -46,25 +46,28 @@ class PathDeviationTrackerExecutor(Component):
         if not value:
             return [[0,0], [0,1]] # default fallback
         try:
-            import re
+            roi_data = json.loads(value)
             
             # 1. Tuval (Canvas) boyutunu bul
             canvas_w, canvas_h = video_w, video_h
-            canvas_match = re.search(r'canvasSize\s*:\s*\{\s*width\s*:\s*(\d+)\s*,\s*height\s*:\s*(\d+)\s*\}', value)
-            if canvas_match:
-                canvas_w = float(canvas_match.group(1))
-                canvas_h = float(canvas_match.group(2))
+            config = roi_data.get("config", {})
+            canvas_size = config.get("canvasSize", {})
+            if canvas_size:
+                canvas_w = float(canvas_size.get("width", video_w))
+                canvas_h = float(canvas_size.get("height", video_h))
                 
             # 2. X ve Y eksenleri için Oto-Ölçekleme katsayılarını hesapla
             scale_x = video_w / canvas_w if canvas_w else 1.0
             scale_y = video_h / canvas_h if canvas_h else 1.0
 
             # 3. Çizilen tüm noktaları (polygon/polyline) bul
-            points_matches = re.findall(r'points\s*:\s*\[([\d,\.\s]+)\]', value)
-            if points_matches:
+            shapes = roi_data.get("polygons", [])
+            if not shapes:
+                shapes = roi_data.get("polyLines", [])
+                
+            if shapes:
                 # En son çizilen şekli (phantom coordinate'leri aşmak için) kullanıyoruz
-                last_points_str = points_matches[-1]
-                coords = [float(x.strip()) for x in last_points_str.split(',') if x.strip()]
+                coords = shapes[-1].get("points", [])
                 
                 # 4. Koordinatları otomatik oranlayarak (scale_x ve scale_y) kaydet!
                 if len(coords) >= 4:
