@@ -98,15 +98,6 @@ class ConfigTriggeringAnchor(Config):
         title = "Tracking Anchor"
 
 
-class ConfigRoiScale(Config):
-    name: Literal["roiScale"] = "roiScale"
-    value: float = Field(default=1.0)
-    type: Literal["number"] = "number"
-    field: Literal["textInput"] = "textInput"
-    class Config:
-        title = "ROI Scale Factor"
-
-
 class ConfigReferenceRoi(Config):
     """
     Region of Interest (ROI) selector for drawing the reference path.
@@ -138,7 +129,6 @@ class PathDeviationInputs(Inputs):
 class PathDeviationConfigs(Configs):
     referenceRoi: ConfigReferenceRoi
     triggeringAnchor: ConfigTriggeringAnchor
-    roiScale: ConfigRoiScale
 
 
 class OutputDetections(Output):
