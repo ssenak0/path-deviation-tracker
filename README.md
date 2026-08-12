@@ -16,7 +16,7 @@ Kapsül, bir "Görüntü İşleme" modülü **değildir**. Gelen video pikseller
 
 - **Native Component Mimarisi:** NovaVision SDK gereksinimlerini karşılamak üzere kapsül, `Component` temel sınıfı üzerine inşa edilmiştir. İçe aktarma (import) yolları doğrudan `src` modülü üzerinden yapılandırılarak `ModuleNotFoundError` riskleri tamamen giderilmiştir.
 - **Yüksek Performanslı I/O Bypassi:** Bu kapsül, sadece koordinat hesabı yaptığı için standart Redis `get_frame` ve `set_frame` okuma/yazma döngüleri koddan çıkartılmıştır. Ağ yükü sıfırlanmış ve saniye-kare (FPS) hızı maksimize edilmiştir.
-- **Otonom Tekil Kamera Senaryosu:** Sistem, sabit bir kamera görüntüsü üzerinden çalışacak şekilde ayarlanmıştır. Hata fırlatmaya müsait olan katı "Kamera Kimliği" (`video_identifier`) meta-veri doğrulama süreçleri koddan kaldırılarak sistem tamamen otonom ve kesintisiz hale getirilmiştir.
+- **Otonom Çözünürlük ve Ölçekleme (Auto-Scaling):** Çizim yapılan tuvalin (canvas) boyutları ile gerçek videonun çözünürlüğü arasındaki piksel uyuşmazlığı giderilmiştir. Gelen JSON verisi anlık olarak analiz edilip, videonun gerçek ölçülerine (1080p, 4K vb.) göre dinamik olarak oranlanmaktadır.
 
 ---
 
@@ -45,7 +45,7 @@ Ekran görüntüsündeki akışa göre düğüm bağlantılarını şu şekilde 
 
 Kapsülü (Node) platform üzerinde seçtiğinizde yandaki ayarlardan şu parametreleri doldurmalısınız:
 
-- **`referencePath`**: Sapmanın ölçüleceği referans rotasını belirten, JSON formatında bir nokta listesi (Örn: `[[100, 320], [200, 320], [300, 320]]`). Minimum iki nokta girilmelidir.
+- **`referenceRoi` (Draw Reference Path)**: Sapmanın ölçüleceği referans rotasını belirten çizim aracıdır. Ekranda farenizle çizdiğiniz Polygon (Çokgen) veya Polyline (Çizgi) şeklinin koordinatları otomatik olarak kod tarafından ölçeklendirilip algılanır. Elle sayı (JSON) girmenize gerek yoktur.
 - **`triggeringAnchor`**: Sınır kutusunun neresinin arabanın konumu olarak kabul edileceği. Değerler: `CENTER`, `TOP_CENTER` veya `BOTTOM_CENTER`. Genellikle zemin teması için `BOTTOM_CENTER` önerilir.
 
 ### 3. Çıktı Formatı Beklentisi
